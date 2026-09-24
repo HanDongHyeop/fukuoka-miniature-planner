@@ -8,25 +8,23 @@
 <title>후쿠오카·기타큐슈 미니어처 플래너</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <style>
   :root{
     --bg:#ece8e0; --panel:#f8f6f1; --panel2:#fffdf9; --ink:#26231e; --muted:#6f6b63; --line:#d9d3c7;
     --accent:#c9452b; --accent-soft:#f7e2dc; --teal:#2f7f86; --teal-soft:#d8ebec; --navy:#2e3d5c; --amber:#b8860b; --amber-soft:#f6ecd2;
-    --shadow:0 8px 24px rgba(40,30,20,.14);
-    --sat-b:env(safe-area-inset-bottom,0px); --sat-t:env(safe-area-inset-top,0px);
+    --shadow:0 8px 24px rgba(40,30,20,.14); --sat-b:env(safe-area-inset-bottom,0px); --sat-t:env(safe-area-inset-top,0px);
     --font:"Noto Sans KR",system-ui,-apple-system,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;margin:0;overscroll-behavior:none}
   body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;display:flex;flex-direction:column;overflow:hidden;touch-action:manipulation}
   button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
-  /* ---------- top bar ---------- */
   #top{padding:calc(8px + var(--sat-t)) 12px 8px;display:grid;gap:8px;background:var(--bg);z-index:5}
   .row{display:flex;align-items:center;gap:8px}
   .brand{font-weight:700;font-size:15px;letter-spacing:-.01em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .brand small{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted);margin-left:6px}
   .iconbtn{min-width:44px;height:44px;display:grid;place-items:center;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:12px;font-weight:500;padding:0 10px}
-  .iconbtn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
   .seg button{flex:1;min-height:38px;border-radius:9px;font-weight:500;color:var(--muted);padding:0 10px;white-space:nowrap}
   .seg button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
@@ -36,70 +34,39 @@
   #regions button{min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:13px;white-space:nowrap}
   #regions button[aria-selected="true"]{background:var(--teal);border-color:var(--teal);color:#fff}
   #regions[hidden]{display:none}
-  /* ---------- map ---------- */
-  #stage{position:relative;flex:1;min-height:0;overflow:hidden;background:#e4dfd5;touch-action:none;cursor:grab}
-  #stage.drag{cursor:grabbing}
-  #world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
-  #world img.scene{display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
-  #shade{position:absolute;inset:0;pointer-events:none}
-  #routes{position:absolute;inset:0;pointer-events:none;overflow:visible}
-  #routes .seg{opacity:.22;transition:opacity .3s}
-  #routes .seg.hot{opacity:1}
-  #routes .seg.hot path:last-child{animation:dash 1.2s linear infinite}
-  @keyframes dash{to{stroke-dashoffset:-30}}
-  #sprites{position:absolute;inset:0;pointer-events:none}
-  .spr{position:absolute;left:0;top:0;transform-origin:50% 100%;will-change:transform;image-rendering:auto}
-  .spr img{display:block;height:100%;width:auto}
-  .spr.flip .rig{transform:scaleX(-1)}
-  .rig{position:relative;height:100%;display:grid;grid-template-rows:100%;grid-template-columns:max-content;--hip:57%;--legs:43%;--swing:17deg;--cyc:.58s}
-  .rig .part{grid-area:1/1;height:100%;min-height:0;will-change:transform}
-  .rig .part img{height:100%;width:auto;display:block}
-  .rig .body{clip-path:inset(0 0 var(--legs) 0);animation:bodybob var(--cyc) ease-in-out infinite}
-  .rig .legL{clip-path:inset(var(--hip) 50% -6% 0);transform-origin:50% var(--hip);animation:legL var(--cyc) ease-in-out infinite}
-  .rig .legR{clip-path:inset(var(--hip) 0 -6% 50%);transform-origin:50% var(--hip);animation:legR var(--cyc) ease-in-out infinite}
-  .rig.idle .part{animation:none;transform:none}
-  .spr.car .rig .part{clip-path:none;animation:carbob .34s ease-in-out infinite}
-  .spr.train .rig .part{clip-path:none;animation:none}
-  @keyframes legL{0%,100%{transform:rotate(var(--swing))}50%{transform:rotate(calc(var(--swing) * -1))}}
-  @keyframes legR{0%,100%{transform:rotate(calc(var(--swing) * -1))}50%{transform:rotate(var(--swing))}}
-  @keyframes bodybob{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-1.2px) rotate(1.5deg)}75%{transform:translateY(-1.2px) rotate(-1.5deg)}}
-  @keyframes carbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-.7px)}}
-  @media (prefers-reduced-motion:reduce){.rig .part{animation:none!important}}
-  /* hero */
-  #hero{position:absolute;left:0;top:0;transform-origin:50% 100%;will-change:transform;pointer-events:none;z-index:3}
-  #hero .ring{position:absolute;left:50%;bottom:-6px;width:46px;height:20px;margin-left:-23px;border-radius:50%;border:3px solid var(--teal);box-shadow:0 0 0 6px rgba(47,127,134,.18), 0 0 18px rgba(47,127,134,.5);animation:ring 1.6s ease-in-out infinite}
-  #hero .hb{position:relative;height:46px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.25))}
-  #hero .hb .rig{--swing:20deg;--cyc:.62s}
-  #hero.flip .hb .rig{transform:scaleX(-1)}
-  #hero .flag{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;animation:bob 1.4s ease-in-out infinite}
-  #hero .flag span{background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.25);white-space:nowrap;letter-spacing:.02em}
-  #hero .flag i{width:2px;height:10px;background:var(--accent);display:block}
-  @keyframes ring{0%,100%{transform:scale(1);opacity:.95}50%{transform:scale(1.18);opacity:.6}}
-  @keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-5px)}}
-  /* pins */
-  .pin{position:absolute;left:0;top:0;transform:translate(-50%,-100%);z-index:4;display:grid;justify-items:center;pointer-events:auto;cursor:pointer;min-width:44px;min-height:44px;padding-bottom:2px}
+  #stage{position:relative;flex:1;min-height:0;overflow:hidden;background:#e4dfd5}
+  #pins{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:4}
+  #stage canvas{z-index:0}
+  .pin{position:absolute;left:0;top:0;transform:translate(-50%,-100%);display:grid;justify-items:center;pointer-events:auto;cursor:pointer;min-width:44px;padding:0 4px 2px;will-change:transform}
   .pin .num{width:30px;height:30px;border-radius:50%;background:var(--panel2);border:2.5px solid var(--ink);display:grid;place-items:center;font-family:var(--mono);font-weight:500;font-size:13px;box-shadow:0 3px 8px rgba(0,0,0,.25);transition:transform .2s}
-  .pin .tail{width:2px;height:12px;background:var(--ink)}
-  .pin .dot{width:8px;height:4px;border-radius:50%;background:rgba(0,0,0,.35)}
-  .pin.sel .num{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(1.18)}
-  .pin.sel .tail{background:var(--accent)}
+  .pin .tail{width:2px;height:14px;background:var(--ink)}
+  .pin.sel{z-index:2}
+  .pin.sel .num{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(1.18)} .pin.sel .tail{background:var(--accent)}
   .pin.done .num{background:var(--teal);color:#fff;border-color:var(--teal)}
   .pin.check .num{border-color:var(--amber);border-style:dashed}
   .pin.unknown .num{background:#8f8a80;color:#fff;border-color:#6f6b63}
   .pin .lbl{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:2px;background:rgba(38,35,30,.85);color:#fff;font-size:11px;padding:2px 7px;border-radius:6px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none}
   .pin.sel .lbl,#stage.labels .pin .lbl{opacity:1}
-  .pin.leg{transform:translate(-50%,-50%)}
   .pin.leg .num{border-radius:8px}
-  /* map hud */
+  .pin.hero{pointer-events:none}
+  .pin.hero .flag{display:flex;flex-direction:column;align-items:center;animation:bob 1.4s ease-in-out infinite}
+  .pin.hero .flag span{background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.25);white-space:nowrap}
+  .pin.hero .flag i{width:2px;height:10px;background:var(--accent);display:block}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
   #hud{position:absolute;right:10px;top:10px;display:grid;gap:6px;z-index:6}
   #hud button{width:44px;height:44px;border-radius:12px;background:rgba(248,246,241,.92);border:1px solid var(--line);box-shadow:var(--shadow);font-size:18px;display:grid;place-items:center;color:var(--ink)}
   #hud button.on{background:var(--ink);color:var(--bg)}
   #legend{position:absolute;left:10px;top:10px;z-index:6;display:flex;gap:4px;flex-wrap:wrap;max-width:62%}
   #legend span{background:rgba(248,246,241,.9);border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:10px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
   #legend i{display:inline-block;width:18px;height:0;border-top:3px solid}
+  #loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(228,223,213,.92);z-index:9;font-size:13px;color:var(--muted)}
+  #loading[hidden]{display:none}
+  #loading div{display:grid;gap:10px;justify-items:center}
+  #loading b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+  .spin{width:28px;height:28px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:spin .9s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
   #toast{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(38,35,30,.9);color:#fff;padding:8px 14px;border-radius:999px;font-size:13px;z-index:7;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:92%}
   #toast.show{opacity:1}
-  /* ---------- bottom ---------- */
   #bottom{background:var(--panel);border-top:1px solid var(--line);padding-bottom:var(--sat-b);z-index:5;display:grid;gap:8px;padding-top:8px}
   #summary{display:flex;gap:14px;padding:0 14px;font-size:12px;color:var(--muted);align-items:baseline;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
   #summary b{font-family:var(--mono);font-weight:500;color:var(--ink);font-size:13px}
@@ -115,7 +82,6 @@
   .card.check .n{background:var(--amber)} .card.unknown .n{background:#8f8a80} .card.leg .n{border-radius:5px;background:var(--navy)}
   .st{display:inline-block;font-size:10px;padding:0 6px;border-radius:999px;line-height:16px;font-weight:500;white-space:nowrap}
   .st.ok{background:var(--teal-soft);color:var(--teal)} .st.check{background:var(--amber-soft);color:var(--amber)} .st.unknown{background:#e6e2da;color:#6f6b63} .st.leg{background:#dde3ee;color:var(--navy)}
-  /* ---------- detail sheet ---------- */
   #sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel2);border-radius:18px 18px 0 0;box-shadow:0 -10px 30px rgba(40,30,20,.18);z-index:8;transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.8,.2,1);max-height:60%;display:flex;flex-direction:column;padding-bottom:var(--sat-b)}
   #sheet.open{transform:translateY(0)}
   #sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 4px}
@@ -127,56 +93,36 @@
   #sheet .hd .time{font-family:var(--mono);font-size:12px;color:var(--ink);margin-top:4px}
   #sheet .close{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--muted);font-size:20px}
   #sheet .bd{overflow-y:auto;padding:12px 16px 16px;display:grid;gap:12px;font-size:13px}
-  .kv{display:grid;grid-template-columns:72px 1fr;gap:4px 10px}
-  .kv dt{color:var(--muted);font-size:12px} .kv dd{margin:0}
+  .kv{display:grid;grid-template-columns:72px 1fr;gap:4px 10px} .kv dt{color:var(--muted);font-size:12px} .kv dd{margin:0}
   .box{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:6px;background:var(--panel)}
   .box.warn{border-color:#e6cf8f;background:var(--amber-soft)} .box.ok{border-color:#bcd9db;background:var(--teal-soft)} .box.grey{background:#efece6}
-  .box h4{margin:0;font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.02em}
-  .box a{color:var(--teal);word-break:break-all}
-  .nav{display:flex;gap:8px}
-  .nav button{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-weight:500}
-  .nav button.go{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-  .mode{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px}
-  .mode i{display:inline-block;width:22px;border-top:3px solid;height:0}
-  /* ---------- overlay screens ---------- */
+  .box h4{margin:0;font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.02em} .box a{color:var(--teal);word-break:break-all}
+  .nav{display:flex;gap:8px} .nav button{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-weight:500} .nav button.go{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .mode{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px} .mode i{display:inline-block;width:22px;border-top:3px solid;height:0}
   .screen{position:absolute;inset:0;background:var(--bg);z-index:20;display:none;flex-direction:column;padding-top:var(--sat-t)}
   .screen.open{display:flex}
-  .screen header{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line)}
-  .screen header h2{font-size:16px;margin:0;flex:1}
-  .screen .bd{overflow-y:auto;padding:14px 14px calc(20px + var(--sat-b));display:grid;gap:12px;font-size:13px}
-  .screen .bd h3{font-size:14px;margin:8px 0 0}
-  .item{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:6px}
-  .item .t{font-weight:500}
-  .item .s{font-size:12px;color:var(--muted)}
-  .item ul{margin:0;padding-left:18px;display:grid;gap:4px}
-  .item a{color:var(--teal);word-break:break-all;font-size:12px}
-  label.f{display:grid;gap:4px;font-size:12px;color:var(--muted)}
-  input[type=time],select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--ink);min-height:44px}
-  .tog{display:flex;align-items:center;justify-content:space-between;min-height:44px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:0 12px}
-  .tog input{width:22px;height:22px}
-  /* landscape / wide */
+  .screen header{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line)} .screen header h2{font-size:16px;margin:0;flex:1}
+  .screen .bd{overflow-y:auto;padding:14px 14px calc(20px + var(--sat-b));display:grid;gap:12px;font-size:13px} .screen .bd h3{font-size:14px;margin:8px 0 0}
+  .item{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:6px} .item .t{font-weight:500} .item .s{font-size:12px;color:var(--muted)} .item ul{margin:0;padding-left:18px;display:grid;gap:4px} .item a{color:var(--teal);word-break:break-all;font-size:12px}
+  label.f{display:grid;gap:4px;font-size:12px;color:var(--muted)} input[type=time]{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--ink);min-height:44px}
+  .tog{display:flex;align-items:center;justify-content:space-between;min-height:44px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:0 12px} .tog input{width:22px;height:22px}
   @media (min-width:760px) and (orientation:landscape){
     body{display:grid;grid-template-columns:1fr 360px;grid-template-rows:auto 1fr}
-    #stage{grid-column:1;grid-row:1/3}
-    #top{grid-column:2;grid-row:1;border-left:1px solid var(--line);padding-top:14px}
+    #stage{grid-column:1;grid-row:1/3} #top{grid-column:2;grid-row:1;border-left:1px solid var(--line);padding-top:14px}
     .seg button{white-space:normal;line-height:1.2;font-size:13px}
     #bottom{grid-column:2;grid-row:2;border-left:1px solid var(--line);border-top:0;min-height:0;grid-template-rows:auto 1fr}
     #summary{flex-wrap:wrap;white-space:normal;row-gap:2px}
-    #cards{flex-direction:column;overflow-y:auto;overflow-x:hidden;scroll-snap-type:none;padding:2px 12px 12px;min-height:0}
-    .card{width:auto}
-    #sheet{right:auto;width:380px;left:12px;bottom:12px;border-radius:18px;max-height:88%}
-    #legend{max-width:70%}
+    #cards{flex-direction:column;overflow-y:auto;overflow-x:hidden;scroll-snap-type:none;padding:2px 12px 12px;min-height:0} .card{width:auto}
+    #sheet{right:auto;width:380px;left:12px;bottom:12px;border-radius:18px;max-height:88%} #legend{max-width:70%}
   }
-  @media (prefers-reduced-motion:reduce){#hero .ring,#hero .flag{animation:none}}
+  @media (prefers-reduced-motion:reduce){.pin.hero .flag{animation:none}}
 </style>
 </head>
 <body>
 <div id="top">
   <div class="row">
-    <div class="brand">후쿠오카 · 기타큐슈 <small id="dateLbl">2026.09.27–28</small></div>
-    <button class="iconbtn" id="btnNotes" aria-label="확인 메모">메모</button>
-    <button class="iconbtn" id="btnSources" aria-label="데이터 출처">출처</button>
-    <button class="iconbtn" id="btnSettings" aria-label="설정">설정</button>
+    <div class="brand">후쿠오카 · 기타큐슈 <small>2026.09.27–28</small></div>
+    <button class="iconbtn" id="btnNotes">메모</button><button class="iconbtn" id="btnSources">출처</button><button class="iconbtn" id="btnSettings">설정</button>
   </div>
   <div class="seg" role="tablist" id="dayTabs">
     <button role="tab" data-day="1" aria-selected="true"><b>DAY 1</b>9/27 일 · 텐진</button>
@@ -184,23 +130,15 @@
   </div>
   <div id="regions" role="tablist" hidden></div>
 </div>
-
 <div id="stage">
-  <div id="world">
-    <img class="scene" id="sceneImg" alt="">
-    <svg id="shade"></svg>
-    <svg id="routes"></svg>
-    <div id="sprites"></div>
-    <div id="pins"></div>
-    <div id="hero" hidden><div class="ring"></div><div class="hb"><div class="rig" id="heroRig"><div class="part body"><img alt=""></div><div class="part legL"><img alt=""></div><div class="part legR"><img alt=""></div></div></div><div class="flag"><span>나</span><i></i></div></div>
-  </div>
+  <div id="pins"></div>
   <div id="legend"></div>
   <div id="hud">
-    <button id="zin" aria-label="확대">+</button>
-    <button id="zout" aria-label="축소">−</button>
-    <button id="fit" aria-label="전체 보기">⤢</button>
-    <button id="lbl" aria-label="이름 표시">Aa</button>
+    <button id="zin" aria-label="확대">+</button><button id="zout" aria-label="축소">−</button>
+    <button id="rotL" aria-label="왼쪽으로 회전">⟲</button><button id="rotR" aria-label="오른쪽으로 회전">⟳</button>
+    <button id="fit" aria-label="일정 전체 보기">⤢</button><button id="lbl" aria-label="이름 표시">Aa</button>
   </div>
+  <div id="loading"><div><div class="spin"></div><span>브릭 도시를 짓는 중… <b id="loadLbl"></b></span></div></div>
   <div id="toast"></div>
   <div id="sheet" aria-live="polite">
     <div class="grab"></div>
@@ -208,167 +146,121 @@
     <div class="bd" id="dBody"></div>
   </div>
 </div>
-
-<div id="bottom">
-  <div id="summary"></div>
-  <div id="cards"></div>
-</div>
-
+<div id="bottom"><div id="summary"></div><div id="cards"></div></div>
 <div class="screen" id="scrNotes"><header><h2>확인 메모 · 미확정 항목</h2><button class="iconbtn" data-close>닫기</button></header><div class="bd" id="notesBody"></div></div>
 <div class="screen" id="scrSources"><header><h2>데이터 출처 · 확인 시점</h2><button class="iconbtn" data-close>닫기</button></header><div class="bd" id="sourcesBody"></div></div>
 <div class="screen" id="scrSettings"><header><h2>설정</h2><button class="iconbtn" data-close>닫기</button></header><div class="bd" id="settingsBody"></div></div>
 
 <script src="data.js"></script>
-<script>
-(function(){
-'use strict';
+<script type="module">
+import * as THREE from 'three';
+import { World } from './world.js';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-let heroSrc='';
-function setHero(src,idle){ const rig=document.getElementById('heroRig'); if(heroSrc!==src){ heroSrc=src; rig.querySelectorAll('img').forEach(i=>i.src=src); } rig.classList.toggle('idle',!!idle); }
-const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const LOWPERF = (navigator.hardwareConcurrency||8) <= 4 || (navigator.deviceMemory||8) <= 4;
-const MODES = {walk:{c:'#f2eee6',d:'8 7',n:'도보'},subway:{c:'#2e3d5c',d:'2 6',n:'지하철'},shinkansen:{c:'#3b5bdb',d:'',n:'신칸센'},train:{c:'#2f7f86',d:'',n:'JR 재래선'},bus:{c:'#b8860b',d:'',n:'버스'},taxi:{c:'#e0b100',d:'',n:'택시'},stay:{c:'transparent',d:'',n:''}};
-const STATE = {day:1, scene:'tenjin', sel:null, labels:false, ambient:!RM, start:{1:'11:00',2:'08:45'}, done:{} };
-try{ const s=JSON.parse(localStorage.getItem('fk_state')||'{}'); Object.assign(STATE.start, s.start||{}); Object.assign(STATE.done, s.done||{}); if(s.ambient===false) STATE.ambient=false; }catch(e){}
-const save=()=>{ try{ localStorage.setItem('fk_state', JSON.stringify({start:STATE.start,done:STATE.done,ambient:STATE.ambient})); }catch(e){} };
+const MODES={walk:{c:'#f7f3ea',n:'도보',hex:0xf7f3ea,dash:true},subway:{c:'#2e3d5c',n:'지하철',hex:0x2e3d5c,dash:true},shinkansen:{c:'#3b5bdb',n:'신칸센',hex:0x3b5bdb},train:{c:'#2f7f86',n:'JR 재래선',hex:0x2f7f86},bus:{c:'#b8860b',n:'버스',hex:0xb8860b},taxi:{c:'#e0b100',n:'택시',hex:0xe0b100},stay:{c:'transparent',n:''}};
+const CAT={food:0xe36b4f,shop:0x3c9a8f,gacha:0x9b6bd6,camera:0x3f5a9c,hotel:0xe0524a,transit:0x4a78d0,cafe:0xa86b3c,sight:0xe0a83a,unknown:0x8f8a80};
+const STATE={day:1,scene:null,sel:null,labels:false,start:{1:'11:00',2:'08:45'},done:{},ambient:true};
+try{const s=JSON.parse(localStorage.getItem('fk_state')||'{}');Object.assign(STATE.start,s.start||{});Object.assign(STATE.done,s.done||{});if(s.ambient===false)STATE.ambient=false;}catch(e){}
+const save=()=>{try{localStorage.setItem('fk_state',JSON.stringify({start:STATE.start,done:STATE.done,ambient:STATE.ambient}));}catch(e){}};
+const toMin=t=>{const[h,m]=t.split(':').map(Number);return h*60+m;}, fmt=m=>{m=Math.round(m);return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}, dur=m=>m>=60?(Math.floor(m/60)+'시간'+(m%60?' '+m%60+'분':'')):m+'분';
+function haversine(a,b){const R=6371000,toR=x=>x*Math.PI/180;const dLat=toR(b.lat-a.lat),dLng=toR(b.lng-a.lng);const s=Math.sin(dLat/2)**2+Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
+const routeLen={};
+function timeline(day){const stops=DAYS[day].stops.map(s=>Object.assign({},s));let t=toMin(STATE.start[day]);let prev=null;stops.forEach((s,i)=>{const p=PLACES[s.place]||{};s.p=p;if(i>0)t+=s.travel||0;if(s.notBefore&&t<toMin(s.notBefore)){s.wait=toMin(s.notBefore)-t;t=toMin(s.notBefore);}s.arrive=t;s.depart=t+(s.dur||0);t=s.depart;if(prev&&s.mode==='walk'&&p.lat&&prev.p.lat){s.dist=routeLen[prev.id+'>'+s.id]||Math.round(haversine(prev.p,p)*1.3);}else s.dist=s.distFixed||0;prev=s;});const walkM=stops.reduce((a,s)=>a+(s.mode==='walk'?s.dist:0),0),walkT=stops.reduce((a,s)=>a+(s.mode==='walk'?(s.travel||0):0),0),transitT=stops.reduce((a,s)=>a+(s.mode&&s.mode!=='walk'&&s.mode!=='stay'?(s.travel||0):0),0),stayT=stops.reduce((a,s)=>a+(s.dur||0),0);return{stops,walkM,walkT,transitT,stayT,end:t};}
 
-// ---------- time helpers ----------
-const toMin = t=>{ const [h,m]=t.split(':').map(Number); return h*60+m; };
-const fmt = m=>{ m=Math.round(m); return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
-const dur = m=> m>=60 ? (Math.floor(m/60)+'시간'+(m%60?' '+m%60+'분':'')) : m+'분';
-function haversine(a,b){ const R=6371000,toR=x=>x*Math.PI/180; const dLat=toR(b.lat-a.lat),dLng=toR(b.lng-a.lng); const s=Math.sin(dLat/2)**2+Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLng/2)**2; return 2*R*Math.asin(Math.sqrt(s)); }
-
-// compute timeline for a day
-function timeline(day){
-  const stops = DAYS[day].stops.map(s=>Object.assign({}, s));
-  let t = toMin(STATE.start[day]);
-  let prev=null;
-  stops.forEach((s,i)=>{
-    const p = PLACES[s.place]||{};
-    s.p=p;
-    if(i>0){ t += s.travel||0; }
-    s.arriveRaw=t;
-    if(s.notBefore && t<toMin(s.notBefore)){ s.wait = toMin(s.notBefore)-t; t=toMin(s.notBefore); }
-    s.arrive=t; s.depart=t+(s.dur||0); t=s.depart;
-    if(prev && s.mode==='walk' && p.lat && prev.p.lat){ s.dist = Math.round(haversine(prev.p,p)*1.3); }
-    else s.dist = s.distFixed||0;
-    prev=s;
-  });
-  const walkM = stops.reduce((a,s)=>a+(s.mode==='walk'?s.dist:0),0);
-  const walkT = stops.reduce((a,s)=>a+(s.mode==='walk'?(s.travel||0):0),0);
-  const transitT = stops.reduce((a,s)=>a+(s.mode&&s.mode!=='walk'&&s.mode!=='stay'?(s.travel||0):0),0);
-  const stayT = stops.reduce((a,s)=>a+(s.dur||0),0);
-  return {stops, walkM, walkT, transitT, stayT, end:t};
+// ---------- world ----------
+const stage=$('#stage'); const W=new World(stage); window.W=W; W.ambient=STATE.ambient&&!W.reduced;
+const pinsEl=$('#pins'); let pinObjs=[]; let heroPin=null; const routePts={};
+async function showScene(name){
+  if(STATE.scene===name&&W.cur&&W.cur.name===name) return W.cur;
+  $('#loading').hidden=false; $('#loadLbl').textContent=SCENES[name].label;
+  await new Promise(r=>setTimeout(r,30));
+  const A = name==='wide' ? await showWide() : await W.show(name,'data/osm_'+name+'.json');
+  STATE.scene=name; $$('#regions button').forEach(b=>b.setAttribute('aria-selected',b.dataset.scene===name));
+  buildSceneOverlay(A); $('#loading').hidden=true; return A;
 }
-
-// ---------- map view ----------
-const stage=$('#stage'), world=$('#world'), img=$('#sceneImg'), shade=$('#shade'), routes=$('#routes'), spritesEl=$('#sprites'), pinsEl=$('#pins'), hero=$('#hero');
-const view={x:0,y:0,s:1,fitS:1,w:1,h:1};
-function clampView(){ const sw=stage.clientWidth, sh=stage.clientHeight, W=view.w*view.s, H=view.h*view.s; if(W<=sw) view.x=(sw-W)/2; else view.x=Math.min(0,Math.max(sw-W,view.x)); if(H<=sh) view.y=(sh-H)/2; else view.y=Math.min(0,Math.max(sh-H,view.y)); }
-function applyView(){ clampView(); world.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.s})`; world.style.setProperty('--inv', 1/view.s); pinsEl.querySelectorAll('.pin').forEach(p=>p.style.setProperty('--inv',Math.min(1.6,Math.max(.7,1/view.s)))); }
-function fitView(anim){ const sw=stage.clientWidth, sh=stage.clientHeight; view.fitS=Math.min(sw/view.w, sh/view.h); view.s=view.fitS*1.02; view.x=(sw-view.w*view.s)/2; view.y=(sh-view.h*view.s)/2; if(anim){world.style.transition='transform .35s';setTimeout(()=>world.style.transition='',360);} applyView(); }
-function centerOn(px,py,scale,fy){ const sw=stage.clientWidth, sh=stage.clientHeight; if(scale) view.s=Math.max(view.fitS*.8,Math.min(view.fitS*3.2,scale)); view.x=sw/2-px*view.s; view.y=sh*(fy||0.45)-py*view.s; world.style.transition='transform .4s cubic-bezier(.2,.8,.2,1)'; setTimeout(()=>world.style.transition='',420); applyView(); }
-function zoomAt(f,cx,cy){ const ns=Math.max(view.fitS*.8,Math.min(view.fitS*3.2,view.s*f)); const k=ns/view.s; view.x=cx-(cx-view.x)*k; view.y=cy-(cy-view.y)*k; view.s=ns; applyView(); }
-// gestures
-let ptrs=new Map(), last=null, pinchD=0, moved=false;
-stage.addEventListener('pointerdown',e=>{ if(e.target.closest('#hud,#sheet,.pin')) return; stage.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(ptrs.size===1){last={x:e.clientX,y:e.clientY};moved=false;stage.classList.add('drag');} if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinchD=Math.hypot(a.x-b.x,a.y-b.y);} });
-stage.addEventListener('pointermove',e=>{ if(!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(ptrs.size===1&&last){ const dx=e.clientX-last.x, dy=e.clientY-last.y; if(Math.abs(dx)+Math.abs(dy)>2) moved=true; view.x+=dx; view.y+=dy; last={x:e.clientX,y:e.clientY}; applyView(); } else if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y); if(pinchD){ const r=stage.getBoundingClientRect(); zoomAt(d/pinchD,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top); } pinchD=d; } });
-const endPtr=e=>{ ptrs.delete(e.pointerId); if(ptrs.size<2) pinchD=0; if(ptrs.size===0){last=null;stage.classList.remove('drag');} };
-stage.addEventListener('pointerup',endPtr); stage.addEventListener('pointercancel',endPtr);
-stage.addEventListener('wheel',e=>{ e.preventDefault(); const r=stage.getBoundingClientRect(); zoomAt(e.deltaY<0?1.15:1/1.15,e.clientX-r.left,e.clientY-r.top); },{passive:false});
-$('#zin').onclick=()=>zoomAt(1.3,stage.clientWidth/2,stage.clientHeight/2);
-$('#zout').onclick=()=>zoomAt(1/1.3,stage.clientWidth/2,stage.clientHeight/2);
-$('#fit').onclick=()=>fitView(true);
-$('#lbl').onclick=()=>{ STATE.labels=!STATE.labels; stage.classList.toggle('labels',STATE.labels); $('#lbl').classList.toggle('on',STATE.labels); };
-addEventListener('resize',()=>fitView(false));
-
-// ---------- scene ----------
-let sceneStops=[], anims=[], rafId=0, lastT=0;
-function loadScene(name, then){
-  const sc=SCENES[name]; STATE.scene=name;
-  cancelAnimationFrame(rafId); anims=[]; spritesEl.innerHTML='';
-  img.onload=()=>{ view.w=img.naturalWidth; view.h=img.naturalHeight; world.style.width=view.w+'px'; world.style.height=view.h+'px'; fitView(false); drawScene(name); if(then) then(); };
-  if(img.src.endsWith(sc.img)&&img.complete){ img.onload(); } else img.src=sc.img;
-  $$('#regions button').forEach(b=>b.setAttribute('aria-selected', b.dataset.scene===name));
+// wide (schematic) transit area
+async function showWide(){
+  if(!W.areas.wide){
+    const A={name:'wide',group:new THREE.Group(),bld:[],nodes:new Map(),adj:new Map(),walkRoads:[],carRoads:[],railLines:[],wide:true};
+    A.group.visible=false; W.scene.add(A.group);
+    const mat=c=>new THREE.MeshLambertMaterial({color:c});
+    const sea=new THREE.Mesh(new THREE.PlaneGeometry(2600,1400),mat(0x5aa9c9)); sea.rotation.x=-Math.PI/2; sea.position.set(300,-0.5,-250); A.group.add(sea);
+    const land=new THREE.Mesh(new THREE.BoxGeometry(2400,12,900),mat(0xdcd6c8)); land.position.set(300,-6,120); A.group.add(land);
+    [[-120,-40,90],[80,60,70],[420,-60,120],[600,40,80],[760,-20,60]].forEach(([x,z,r])=>{const h=new THREE.Mesh(new THREE.ConeGeometry(r,r*0.5,6),mat(0x86b16f));h.position.set(x,r*0.25,z);A.group.add(h);});
+    const city=(cx,cz,n,sp,hmax,col)=>{for(let i=0;i<n;i++){const w=8+Math.random()*16,h=6+Math.random()*hmax,d=8+Math.random()*16;const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(col[i%col.length]));m.position.set(cx+(Math.random()-.5)*sp,h/2,cz+(Math.random()-.5)*sp*0.7);A.group.add(m);}};
+    city(-330,60,70,260,60,[0xd9d3c6,0xcfc8ba,0xb5bcc2,0xe4dfd4]); city(330,-20,45,200,40,[0xd9d3c6,0xcac4b7,0xb5bcc2]); city(760,-90,18,110,14,[0xc2694a,0xd9d3c6,0xb84a3a]);
+    const stn=(x,z,c)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(60,10,18),mat(c));m.position.set(x,5,z);A.group.add(m);};
+    stn(-330,110,0x9a958c); stn(330,30,0x9a958c); stn(760,-60,0xb8a37a);
+    const shin=[[-330,110],[-200,90],[-60,60],[100,40],[240,30],[330,30]]; const loc=[[330,30],[450,-10],[560,-30],[680,-50],[760,-60]];
+    const rib=(pts,w,y,c)=>{const g=World.ribbon(pts.map(p=>[p[0],-p[1]]),w,y,c);A.group.add(new THREE.Mesh(g,new THREE.MeshLambertMaterial({vertexColors:true})));};
+    rib(shin,9,7,0x9a958c); rib(shin,5,7.6,0x8d8983); rib(loc,4.5,0.3,0x8d8983);
+    shin.forEach(([x,z])=>{const p=new THREE.Mesh(new THREE.BoxGeometry(3,7,3),mat(0xbdb7ab));p.position.set(x,3.5,z);A.group.add(p);});
+    const br=new THREE.Mesh(new THREE.BoxGeometry(6,3,220),mat(0xcfcac0)); br.position.set(830,26,-260); A.group.add(br); [[830,-160],[830,-360]].forEach(([x,z])=>{const t=new THREE.Mesh(new THREE.BoxGeometry(5,60,5),mat(0xcfcac0));t.position.set(x,30,z);A.group.add(t);});
+    A.railLines=[{pts:shin.map(p=>[p[0],-p[1]]),y:8.2,kind:'shinkansen'},{pts:loc.map(p=>[p[0],-p[1]]),y:0.9,kind:'local'}];
+    A.legPos={d2_leg1:[0,50],d2_leg2:[560,-30],d2_leg3:[100,45]};
+    W.areas.wide=A;
+  }
+  const A=W.areas.wide; if(W.cur&&W.cur!==A)W.cur.group.visible=false; W.cur=A; A.group.visible=true; W._clearDyn();
+  if(W.ambient){for(const l of A.railLines){const tr=W.makeTrain(l.kind==='shinkansen'?'shinkansen':'local');const len=World.plen(l.pts);W.trains.push({obj:tr,pts:l.pts,y:l.y,d:Math.random()*len,len,dir:1,v:l.kind==='shinkansen'?40:18,wait:0});W.dyn.add(tr);}}
+  return A;
 }
-const P=(sc,pt)=>[pt[0]/100*view.w, pt[1]/100*view.h];
-function drawScene(name){
-  const sc=SCENES[name]; const tl=timeline(STATE.day); sceneStops=tl.stops.filter(s=>s.scene===name);
-  // shade + spotlights
-  const W=view.w,H=view.h; shade.setAttribute('viewBox',`0 0 ${W} ${H}`); shade.setAttribute('width',W); shade.setAttribute('height',H);
-  let defs=`<defs><radialGradient id="fade"><stop offset="0" stop-color="#000"/><stop offset=".55" stop-color="#000"/><stop offset="1" stop-color="#fff"/></radialGradient><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#fff"/>`;
-  let rings='';
-  sceneStops.forEach(s=>{ if(s.kind==='leg') return; const [x,y]=P(sc,s.at); const r=(s.r||9)/100*W; defs+=`<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*.75}" fill="url(#fade)"/>`; rings+=`<ellipse class="halo" cx="${x}" cy="${y}" rx="${r*.62}" ry="${r*.62*.75}" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="3" stroke-dasharray="10 8"/>`; });
-  defs+='</mask></defs>';
-  shade.innerHTML=defs+`<rect width="${W}" height="${H}" fill="#2a2418" fill-opacity="${sc.dim==null?.30:sc.dim}" mask="url(#m)"/>`+rings;
-  // routes
-  routes.setAttribute('viewBox',`0 0 ${W} ${H}`); routes.setAttribute('width',W); routes.setAttribute('height',H);
-  let paths='';
-  for(let i=1;i<sceneStops.length;i++){ const a=sceneStops[i-1], b=sceneStops[i]; if(b.kind==='leg'||a.kind==='leg') continue; const m=MODES[b.mode]||MODES.walk; const pts=(b.via||[]).map(v=>P(sc,v)); const all=[P(sc,a.at),...pts,P(sc,b.at)]; const d='M'+all.map(p=>p.join(',')).join(' L'); paths+=`<g class="seg" data-a="${a.id}" data-b="${b.id}"><path d="${d}" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="${m.c}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" ${m.d?`stroke-dasharray="${m.d}"`:''} /></g>`; }
-  if(sc.legPath){ const all=sc.legPath.map(v=>P(sc,v)); const d='M'+all.map(p=>p.join(',')).join(' L'); paths+=`<path d="${d}" fill="none" stroke="rgba(0,0,0,.3)" stroke-width="10" stroke-linecap="round"/><path d="${d}" fill="none" stroke="#3b5bdb" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 0"/>`; }
-  routes.innerHTML=paths;
-  // pins
-  pinsEl.innerHTML='';
-  sceneStops.forEach(s=>{ const [x,y]=P(sc,s.at); const el=document.createElement('button'); el.className='pin '+(s.kind==='leg'?'leg ':'')+(s.status||'ok')+(STATE.done[s.id]?' done':''); el.style.left=x+'px'; el.style.top=y+'px'; el.innerHTML=`<div class="num">${s.kind==='leg'?'🚄':s.n}</div><div class="tail"></div><div class="dot"></div><div class="lbl">${s.title}</div>`; el.dataset.id=s.id; el.style.transform=`translate(-50%,${s.kind==='leg'?'-50%':'-100%'}) scale(var(--inv,1))`; el.onclick=e=>{e.stopPropagation(); select(s.id,true);}; pinsEl.appendChild(el); });
-  applyView();
-  // ambient
-  if(STATE.ambient) buildAmbient(sc);
-  updateHero();
-  lastT=performance.now(); rafId=requestAnimationFrame(tick);
+function stopXZ(A,s){ if(A.wide){const p=A.legPos&&A.legPos[s.id]; return p?{x:p[0],z:p[1]}:{x:0,z:0};} const p=PLACES[s.place]; return A.toXZ(p.lat,p.lng); }
+function catOf(s){ const c=(PLACES[s.place]||{}).category||''; if(s.status==='unknown')return'unknown'; if(/스시|식사|라멘|카레|돈스테이크/.test(c))return'food'; if(/가챠/.test(c))return'gacha'; if(/카메라/.test(c))return'camera'; if(/숙소|짐보관|호텔/.test(c))return'hotel'; if(/교통|역/.test(c))return'transit'; if(/카페/.test(c))return'cafe'; if(/쇼핑|슈퍼|디스카운트|서점|캐릭터|잡화|간식|수입|서브컬처/.test(c))return'shop'; return'sight'; }
+function buildSceneOverlay(A){
+  const tl=timeline(STATE.day); const stops=tl.stops.filter(s=>s.scene===A.name);
+  pinsEl.innerHTML=''; pinObjs=[]; const seen=new Set(); const dupCount={}, dupIdx={}; stops.forEach(s=>{dupCount[s.place]=(dupCount[s.place]||0)+1;});
+  stops.forEach(s=>{ const q=stopXZ(A,s); let h=A.wide?12:3;
+    if(!A.wide){ const b=W.findBuilding(A,q.x,-q.z); const col=CAT[catOf(s)]||CAT.unknown; if(b) h=b._h;
+      if(!seen.has(s.place)){ seen.add(s.place); if(b){ if(!b._lm){ W.recolorBuilding(A,b,col); b._lm=true; } const bb=b._bbox; const r=Math.max(9,Math.hypot(bb[2]-bb[0],bb[3]-bb[1])/2+4); W.addRing((bb[0]+bb[2])/2,-(bb[1]+bb[3])/2,r,0xffffff); W.addBeacon((bb[0]+bb[2])/2,-(bb[1]+bb[3])/2,b._h,col); } else { W.addRing(q.x,q.z,12,0xffffff); W.addBeacon(q.x,q.z,4,col); } } }
+    const el=document.createElement('button'); el.className='pin '+(s.kind==='leg'?'leg ':'')+(s.status||'ok')+(STATE.done[s.id]?' done':'')+(s.id===STATE.sel?' sel':''); el.innerHTML=`<div class="num">${s.kind==='leg'?'🚄':s.n}</div><div class="tail"></div><div class="lbl">${s.title}</div>`; el.dataset.id=s.id; el.onclick=e=>{e.stopPropagation();if(!W.dragged)select(s.id,true);}; pinsEl.appendChild(el);
+    const k=dupIdx[s.place]=(dupIdx[s.place]||0); dupIdx[s.place]++; const dx=(k-(dupCount[s.place]-1)/2)*30; pinObjs.push({el,s,x:q.x,z:q.z,h,dx}); });
+  if(!A.wide){ for(let i=1;i<stops.length;i++){ const a=stops[i-1],b=stops[i]; if(a.kind==='leg'||b.kind==='leg'||b.mode!=='walk')continue; const pa=stopXZ(A,a),pb=stopXZ(A,b); const r=W.route(A,pa.x,-pa.z,pb.x,-pb.z); routeLen[a.id+'>'+b.id]=Math.round(r.len); routePts[b.id]=r.pts; const m=MODES[b.mode]||MODES.walk; const mesh=W.addRoute(r.pts,m.hex,!!m.dash,false); if(mesh) mesh._seg=[a.id,b.id]; } }
+  else { for(const l of A.railLines){ W.addRoute(l.pts,l.kind==='shinkansen'?0x3b5bdb:0x2f7f86,false,true); } }
+  heroPin=document.createElement('div'); heroPin.className='pin hero'; heroPin.innerHTML='<div class="flag"><span>나</span><i></i></div>'; pinsEl.appendChild(heroPin);
+  renderCards();
 }
-function buildAmbient(sc){
-  const mult = LOWPERF?0.5:1;
-  (sc.roads||[]).forEach(r=>{ const n=Math.max(1,Math.round((r.n||3)*mult)); for(let i=0;i<n;i++) addSprite(pick(SPR.cars), r.pts, 26+Math.random()*10, Math.random(), r.h||34, 'car', r.rev); });
-  (sc.walks||[]).forEach(w=>{ const n=Math.max(1,Math.round((w.n||4)*mult)); for(let i=0;i<n;i++) addSprite(pick(SPR.people), w.pts, 9+Math.random()*5, Math.random(), w.h||26, 'ppl', Math.random()<.5); });
-  (sc.rails||[]).forEach(r=>{ addSprite(SPR[r.spr]||SPR.train, r.pts, r.v||60, Math.random(), r.h||40, 'train', false, r.pause||2.5); });
-}
-function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
-const rigHTML=src=>`<div class="rig"><div class="part body"><img src="${src}" alt=""></div><div class="part legL"><img src="${src}" alt=""></div><div class="part legR"><img src="${src}" alt=""></div></div>`;
-function addSprite(src,pts,speed,prog,h,kind,rev,pause){ const el=document.createElement('div'); el.className='spr '+kind; el.style.height=h+'px'; el.innerHTML=rigHTML(src); if(kind==='ppl'){ el.querySelector('.rig').style.setProperty('--cyc',(0.5+Math.random()*0.2).toFixed(2)+'s'); el.querySelectorAll('.part').forEach(pt=>pt.style.animationDelay=(-Math.random()).toFixed(2)+'s'); } spritesEl.appendChild(el); const path=pathPx(pts); anims.push({el,path,speed,prog,rev,len:path.len,pause:pause||0,wait:0}); }
-function pathPx(pts){ const P2=pts.map(p=>[p[0]/100*view.w,p[1]/100*view.h]); const seg=[]; let len=0; for(let i=1;i<P2.length;i++){ const l=Math.hypot(P2[i][0]-P2[i-1][0],P2[i][1]-P2[i-1][1]); seg.push({a:P2[i-1],b:P2[i],l,s:len}); len+=l; } return {seg,len,pts:P2}; }
-function posAt(path,d){ d=Math.max(0,Math.min(path.len,d)); for(const s of path.seg){ if(d<=s.s+s.l||s===path.seg[path.seg.length-1]){ const t=s.l?(d-s.s)/s.l:0; return {x:s.a[0]+(s.b[0]-s.a[0])*t, y:s.a[1]+(s.b[1]-s.a[1])*t, dx:s.b[0]-s.a[0]}; } } return {x:path.pts[0][0],y:path.pts[0][1],dx:1}; }
-function tick(now){ const dt=Math.min(.05,(now-lastT)/1000); lastT=now; if(STATE.ambient){ for(const a of anims){ if(a.wait>0){a.wait-=dt;continue;} const dir=a.rev?-1:1; a.prog+=dir*a.speed*dt/a.len; if(a.prog>1||a.prog<0){ if(a.pause){a.wait=a.pause;} a.rev=!a.rev; a.prog=Math.max(0,Math.min(1,a.prog)); } const p=posAt(a.path,a.prog*a.len); const dx=a.rev?-p.dx:p.dx; a.el.classList.toggle('flip',dx<0); a.el.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`; } } tickHero(dt); rafId=requestAnimationFrame(tick); }
+const _v=new THREE.Vector3();
+W.onFrame=()=>{
+  for(const p of pinObjs){ const v=W.project(_v.set(p.x,p.h+1,p.z)); p.el.style.transform=`translate(${v.x+(p.dx||0)}px,${v.y}px) translate(-50%,-100%)`; p.el.style.display=v.vis?'':'none'; }
+  if(heroPin){ if(W.hero){ const hp=W.hero.position; const v=W.project(_v.set(hp.x,hp.y+5.6,hp.z)); heroPin.style.transform=`translate(${v.x}px,${v.y}px) translate(-50%,-100%)`; heroPin.style.display=''; } else heroPin.style.display='none'; }
+};
+$('#zin').onclick=()=>W.zoomBy(1.3,stage.clientWidth/2,stage.clientHeight/2); $('#zout').onclick=()=>W.zoomBy(1/1.3,stage.clientWidth/2,stage.clientHeight/2);
+$('#rotL').onclick=()=>W.rotateBy(Math.PI/8); $('#rotR').onclick=()=>W.rotateBy(-Math.PI/8);
+$('#fit').onclick=()=>fitStops(true);
+$('#lbl').onclick=()=>{STATE.labels=!STATE.labels;stage.classList.toggle('labels',STATE.labels);$('#lbl').classList.toggle('on',STATE.labels);};
+function fitStops(anim){ if(!pinObjs.length)return; let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9; for(const p of pinObjs){x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);z0=Math.min(z0,p.z);z1=Math.max(z1,p.z);} const span=Math.max(x1-x0,(z1-z0)*1.4,160); W.focus((x0+x1)/2,(z0+z1)/2,Math.min(1800,span*1.5),anim); }
 
-// ---------- hero ----------
-let heroA=null;
-function updateHero(){ const tl=timeline(STATE.day); const idx=tl.stops.findIndex(s=>s.id===STATE.sel); const s=idx>=0?tl.stops[idx]:tl.stops[0]; hero.hidden=true; heroA=null; if(!s||s.scene!==STATE.scene) return; const sc=SCENES[STATE.scene]; const next=tl.stops[idx+1]; hero.hidden=false; if(next&&next.scene===STATE.scene&&next.kind!=='leg'&&s.kind!=='leg'&&!RM){ const pts=[s.at,...(next.via||[]),next.at]; heroA={path:pathPx(pts),prog:0,speed:14,pauseAt:0}; } else { const [x,y]=P(sc,s.at); hero.style.transform=`translate(${x}px,${y+4}px) translate(-50%,-100%)`; setHero(SPR.hero.idle,true); hero.classList.remove('flip'); } }
-function tickHero(dt){ if(!heroA) return; if(heroA.pauseAt>0){ heroA.pauseAt-=dt; return; } heroA.prog+=heroA.speed*dt/heroA.path.len; if(heroA.prog>=1){ heroA.prog=0; heroA.pauseAt=1.2; setHero(SPR.hero.idle,true); return; } const p=posAt(heroA.path,heroA.prog*heroA.path.len); const dx=p.dx; hero.classList.toggle('flip',dx<0); setHero(SPR.hero.walkR,false); hero.style.transform=`translate(${p.x}px,${p.y+4}px) translate(-50%,-100%)`; }
-
-// ---------- UI: day / regions / cards ----------
-function setDay(d){ STATE.day=d; STATE.sel=null; $$('#dayTabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.day==d)); const reg=$('#regions'); const scenes=DAYS[d].scenes; if(scenes.length>1){ reg.hidden=false; reg.innerHTML=scenes.map(s=>`<button role="tab" data-scene="${s}">${SCENES[s].label}</button>`).join(''); reg.querySelectorAll('button').forEach(b=>b.onclick=()=>{ loadScene(b.dataset.scene,()=>{ const first=sceneStops[0]; if(first) select(first.id,false); }); }); } else { reg.hidden=true; reg.innerHTML=''; } renderCards(); loadScene(scenes[0],()=>{ select(timeline(d).stops[0].id,false); }); closeSheet(); }
-function renderCards(){ const tl=timeline(STATE.day); const c=$('#cards'); c.innerHTML=tl.stops.map(s=>{ const th=s.thumb?`<img src="${s.thumb}" alt="">`:(s.kind==='leg'?'<span style="font-size:26px">🚄</span>':''); const meta=s.kind==='leg'?`${dur(s.travel)} · ¥${(s.fare||0).toLocaleString()}`:`${fmt(s.arrive)}–${fmt(s.depart)}`; return `<button class="card ${s.status||'ok'}${s.kind==='leg'?' leg':''}" data-id="${s.id}"><span class="n">${s.kind==='leg'?'↔':s.n}</span><div class="th">${th}</div><div><div class="t">${s.title}</div><div class="m">${meta}${s.wait?` <span class="st check">대기 ${s.wait}분</span>`:''}</div></div></button>`; }).join(''); c.querySelectorAll('.card').forEach(b=>b.onclick=()=>select(b.dataset.id,true)); $('#summary').innerHTML=`<span>도보 <b>${(tl.walkM/1000).toFixed(1)} km</b> · <b>${dur(tl.walkT)}</b></span>${tl.transitT?`<span>철도·지하철 <b>${dur(tl.transitT)}</b></span>`:''}<span>체류 <b>${dur(tl.stayT)}</b></span><span>${fmt(toMin(STATE.start[STATE.day]))} → <b>${fmt(tl.end)}</b></span>`; }
-function select(id, openDetail){ const tl=timeline(STATE.day); const s=tl.stops.find(x=>x.id===id); if(!s) return; STATE.sel=id; $$('.card').forEach(c=>c.classList.toggle('sel',c.dataset.id===id)); const card=$(`.card[data-id="${id}"]`); if(card) card.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'}); const go=()=>{ $$('.pin').forEach(p=>p.classList.toggle('sel',p.dataset.id===id)); routes.querySelectorAll('.seg').forEach(g=>g.classList.toggle('hot',g.dataset.a===id||g.dataset.b===id)); const sc=SCENES[s.scene]; const [x,y]=P(sc,s.at); centerOn(x,y,Math.max(view.s,view.fitS*1.5), openDetail?0.26:0.45); updateHero(); if(openDetail) showDetail(s,tl); else closeSheet(); }; if(s.scene!==STATE.scene) loadScene(s.scene,go); else go(); }
-function showDetail(s,tl){ const p=s.p||{}; $('#dTh').src=s.thumb||''; $('#dTh').parentElement.style.visibility=s.thumb?'visible':'hidden'; $('#dTitle').textContent=s.title; $('#dSub').textContent=[p.verified_name_ja,p.verified_name_en].filter(Boolean).join(' · ')||s.sub||''; const idx=tl.stops.indexOf(s); const prev=tl.stops[idx-1]; const m=MODES[s.mode]||MODES.walk; $('#dTime').innerHTML= s.kind==='leg' ? `${fmt(s.arrive)} 출발 · ${dur(s.travel)} 소요` : `${fmt(s.arrive)} 도착 · ${dur(s.dur)} 체류 · ${fmt(s.depart)} 출발${s.wait?` <span class="st check">개점 대기 ${s.wait}분</span>`:''}`;
-  let b='';
-  if(idx>0&&s.mode!=='stay') b+=`<div class="box"><h4>이동 · 이전 장소에서</h4><div class="mode"><i style="border-color:${m.c==='#f2eee6'?'#9a958a':m.c};${m.d?'border-style:dashed':''}"></i>${m.n} ${dur(s.travel||0)}${s.dist?` · 약 ${s.dist>=1000?(s.dist/1000).toFixed(1)+' km':s.dist+' m'}`:''}${s.fare?` · ¥${s.fare.toLocaleString()}`:''}</div>${s.legNote?`<div>${s.legNote}</div>`:''}</div>`;
+// ---------- UI ----------
+function setDay(d){ STATE.day=d; STATE.sel=null; $$('#dayTabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.day==d)); const reg=$('#regions'); const scenes=DAYS[d].scenes; if(scenes.length>1){reg.hidden=false;reg.innerHTML=scenes.map(s=>`<button role="tab" data-scene="${s}">${SCENES[s].label}</button>`).join('');reg.querySelectorAll('button').forEach(b=>b.onclick=async()=>{await showScene(b.dataset.scene);const first=pinObjs[0];if(first)select(first.s.id,false);else fitStops(true);});}else{reg.hidden=true;reg.innerHTML='';} closeSheet(); STATE.scene=null; showScene(scenes[0]).then(()=>select(timeline(d).stops[0].id,false)); }
+function renderCards(){ const tl=timeline(STATE.day); const c=$('#cards'); c.innerHTML=tl.stops.map(s=>{const th=s.thumb?`<img src="${s.thumb}" alt="">`:(s.kind==='leg'?'<span style="font-size:26px">🚄</span>':''); const meta=s.kind==='leg'?`${dur(s.travel)} · ¥${(s.fare||0).toLocaleString()}`:`${fmt(s.arrive)}–${fmt(s.depart)}`; return `<button class="card ${s.status||'ok'}${s.kind==='leg'?' leg':''}${s.id===STATE.sel?' sel':''}" data-id="${s.id}"><span class="n">${s.kind==='leg'?'↔':s.n}</span><div class="th">${th}</div><div><div class="t">${s.title}</div><div class="m">${meta}${s.wait?` <span class="st check">대기 ${s.wait}분</span>`:''}</div></div></button>`;}).join(''); c.querySelectorAll('.card').forEach(b=>b.onclick=()=>select(b.dataset.id,true)); $('#summary').innerHTML=`<span>도보 <b>${(tl.walkM/1000).toFixed(1)} km</b> · <b>${dur(tl.walkT)}</b></span>${tl.transitT?`<span>철도·지하철 <b>${dur(tl.transitT)}</b></span>`:''}<span>체류 <b>${dur(tl.stayT)}</b></span><span>${fmt(toMin(STATE.start[STATE.day]))} → <b>${fmt(tl.end)}</b></span>`; }
+async function select(id,openDetail){ const tl=timeline(STATE.day); const s=tl.stops.find(x=>x.id===id); if(!s)return; STATE.sel=id; $$('.card').forEach(c=>c.classList.toggle('sel',c.dataset.id===id)); const card=$(`.card[data-id="${id}"]`); if(card)card.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
+  const A=await showScene(s.scene); $$('.pin').forEach(p=>p.classList.toggle('sel',p.dataset.id===id));
+  const q=stopXZ(A,s); const vw=A.wide?1500:Math.min(W.viewW,300);
+  // keep the pin above the detail sheet: shift the target toward the camera-bottom when the sheet opens
+  const shift=openDetail?vw*0.16:0; const az=W.az; W.focus(q.x+Math.sin(az)*shift*0.9,q.z+Math.cos(az)*shift*0.9,vw,true);
+  const idx=tl.stops.indexOf(s); const next=tl.stops[idx+1];
+  W.routeMeshes.forEach(rm=>{const seg=rm.m._seg||[]; rm.hot=seg.includes(id)||!!A.wide; rm.m.material.opacity=rm.hot?0.98:0.55; rm.m.material.depthTest=!rm.hot; rm.under.material.depthTest=!rm.hot; rm.m.material.needsUpdate=rm.under.material.needsUpdate=true;});
+  if(!A.wide){ if(next&&next.scene===A.name&&routePts[next.id]&&next.mode==='walk'&&!W.reduced){ W.heroWalk(routePts[next.id]); } else { W.setHeroNear(A,q.x,q.z); } }
+  if(openDetail)showDetail(s,tl);else closeSheet(); }
+function showDetail(s,tl){ const p=s.p||{}; $('#dTh').src=s.thumb||''; $('#dTh').parentElement.style.visibility=s.thumb?'visible':'hidden'; $('#dTitle').textContent=s.title; $('#dSub').textContent=[p.verified_name_ja,p.verified_name_en].filter(Boolean).join(' · ')||s.sub||''; const idx=tl.stops.indexOf(s); const m=MODES[s.mode]||MODES.walk; $('#dTime').innerHTML=s.kind==='leg'?`${fmt(s.arrive)} 출발 · ${dur(s.travel)} 소요`:`${fmt(s.arrive)} 도착 · ${dur(s.dur)} 체류 · ${fmt(s.depart)} 출발${s.wait?` <span class="st check">개점 대기 ${s.wait}분</span>`:''}`;
+  let b=''; if(idx>0&&s.mode!=='stay')b+=`<div class="box"><h4>이동 · 이전 장소에서</h4><div class="mode"><i style="border-color:${m.c==='#f7f3ea'?'#9a958a':m.c};${m.dash?'border-style:dashed':''}"></i>${m.n} ${dur(s.travel||0)}${s.dist?` · 약 ${s.dist>=1000?(s.dist/1000).toFixed(1)+' km':s.dist+' m'}${s.mode==='walk'&&routeLen[tl.stops[idx-1].id+'>'+s.id]?' (실제 도로 경로)':''}`:''}${s.fare?` · ¥${s.fare.toLocaleString()}`:''}</div>${s.legNote?`<div>${s.legNote}</div>`:''}</div>`;
   const st=s.status||'ok'; const stLabel={ok:'검증됨',check:'당일 확인 필요',unknown:'미확정 · 메모 참고',leg:'교통'}[st];
   b+=`<div class="box ${st==='ok'?'ok':st==='check'?'warn':'grey'}"><h4>상태 <span class="st ${st}">${stLabel}</span></h4>${p.status_note?`<div>${p.status_note}</div>`:''}${s.note?`<div>${s.note}</div>`:''}${p.check_realtime&&p.check_realtime!=='-'?`<div><b>확인 방법:</b> ${p.check_realtime}</div>`:''}</div>`;
-  if(s.kind!=='leg') b+=`<dl class="kv">${p.address?`<dt>주소</dt><dd>${p.address}</dd>`:''}${p.hours?`<dt>영업시간</dt><dd>${p.hours}</dd>`:''}${p.category?`<dt>분류</dt><dd>${p.category}</dd>`:''}${p.lat?`<dt>좌표</dt><dd class="mono">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)} <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener" style="color:var(--teal)">지도 열기</a></dd>`:''}</dl>`;
-  if(p.alternatives&&p.alternatives.length) b+=`<div class="box"><h4>대체 후보</h4><ul style="margin:0;padding-left:18px">${p.alternatives.map(a=>`<li>${a}</li>`).join('')}</ul></div>`;
-  if(p.sources&&p.sources.length) b+=`<div class="box"><h4>출처 · 확인 ${META.checked_at}</h4>${p.sources.slice(0,3).map(u=>`<a href="${u}" target="_blank" rel="noopener">${u.replace(/^https?:\/\//,'').slice(0,60)}</a>`).join('<br>')}<div style="font-size:11px;color:var(--muted)">확신도: ${p.confidence||'-'}</div></div>`;
+  if(s.kind!=='leg')b+=`<dl class="kv">${p.address?`<dt>주소</dt><dd>${p.address}</dd>`:''}${p.hours?`<dt>영업시간</dt><dd>${p.hours}</dd>`:''}${p.category?`<dt>분류</dt><dd>${p.category}</dd>`:''}${p.lat?`<dt>좌표</dt><dd>${p.lat.toFixed(5)}, ${p.lng.toFixed(5)} <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener" style="color:var(--teal)">지도 열기</a></dd>`:''}</dl>`;
+  if(p.alternatives&&p.alternatives.length)b+=`<div class="box"><h4>대체 후보</h4><ul style="margin:0;padding-left:18px">${p.alternatives.map(a=>`<li>${a}</li>`).join('')}</ul></div>`;
+  if(p.sources&&p.sources.length)b+=`<div class="box"><h4>출처 · 확인 ${META.checked_at}</h4>${p.sources.slice(0,3).map(u=>`<a href="${u}" target="_blank" rel="noopener">${u.replace(/^https?:\/\//,'').slice(0,60)}</a>`).join('<br>')}<div style="font-size:11px;color:var(--muted)">확신도: ${p.confidence||'-'}</div></div>`;
   b+=`<div class="nav">${idx>0?`<button data-nav="${tl.stops[idx-1].id}">← 이전</button>`:''}<button class="go" data-done="${s.id}">${STATE.done[s.id]?'✓ 방문 완료 취소':'방문 완료'}</button>${tl.stops[idx+1]?`<button data-nav="${tl.stops[idx+1].id}">다음 →</button>`:''}</div>`;
-  $('#dBody').innerHTML=b; $('#dBody').querySelectorAll('[data-nav]').forEach(x=>x.onclick=()=>select(x.dataset.nav,true)); const dn=$('#dBody [data-done]'); if(dn) dn.onclick=()=>{ STATE.done[s.id]=!STATE.done[s.id]; save(); $$('.pin').forEach(pn=>pn.classList.toggle('done',!!STATE.done[pn.dataset.id])); dn.textContent=STATE.done[s.id]?'✓ 방문 완료 취소':'방문 완료'; };
+  $('#dBody').innerHTML=b; $('#dBody').querySelectorAll('[data-nav]').forEach(x=>x.onclick=()=>select(x.dataset.nav,true)); const dn=$('#dBody [data-done]'); if(dn)dn.onclick=()=>{STATE.done[s.id]=!STATE.done[s.id];save();$$('.pin').forEach(pn=>pn.classList.toggle('done',!!STATE.done[pn.dataset.id]));dn.textContent=STATE.done[s.id]?'✓ 방문 완료 취소':'방문 완료';};
   $('#sheet').classList.add('open'); }
-function closeSheet(){ $('#sheet').classList.remove('open'); }
-$('#dClose').onclick=closeSheet;
-$$('#dayTabs button').forEach(b=>b.onclick=()=>setDay(+b.dataset.day));
-// sheet drag-to-close
-(()=>{ const sh=$('#sheet'); let y0=null; sh.addEventListener('pointerdown',e=>{ if(e.target.closest('.bd')&&$('#dBody').scrollTop>0) return; y0=e.clientY; }); sh.addEventListener('pointermove',e=>{ if(y0==null) return; const dy=e.clientY-y0; if(dy>0) sh.style.transform=`translateY(${dy}px)`; }); const up=e=>{ if(y0==null) return; const dy=e.clientY-y0; sh.style.transform=''; if(dy>90) closeSheet(); y0=null; }; sh.addEventListener('pointerup',up); sh.addEventListener('pointercancel',up); })();
-function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2200); }
-
-// ---------- screens ----------
+function closeSheet(){$('#sheet').classList.remove('open');}
+$('#dClose').onclick=closeSheet; $$('#dayTabs button').forEach(b=>b.onclick=()=>setDay(+b.dataset.day));
+(()=>{const sh=$('#sheet');let y0=null;sh.addEventListener('pointerdown',e=>{if(e.target.closest('.bd')&&$('#dBody').scrollTop>0)return;y0=e.clientY;});sh.addEventListener('pointermove',e=>{if(y0==null)return;const dy=e.clientY-y0;if(dy>0)sh.style.transform=`translateY(${dy}px)`;});const up=e=>{if(y0==null)return;const dy=e.clientY-y0;sh.style.transform='';if(dy>90)closeSheet();y0=null;};sh.addEventListener('pointerup',up);sh.addEventListener('pointercancel',up);})();
 $$('.screen [data-close]').forEach(b=>b.onclick=()=>b.closest('.screen').classList.remove('open'));
-$('#btnNotes').onclick=()=>{ renderNotes(); $('#scrNotes').classList.add('open'); };
-$('#btnSources').onclick=()=>{ renderSources(); $('#scrSources').classList.add('open'); };
-$('#btnSettings').onclick=()=>{ renderSettings(); $('#scrSettings').classList.add('open'); };
-function renderNotes(){ const unk=NOTES.map(n=>`<div class="item"><div class="t">${n.t}</div><div class="s">${n.s}</div>${n.opts?`<ul>${n.opts.map(o=>`<li>${o}</li>`).join('')}</ul>`:''}${n.how?`<div class="s"><b>확인 방법:</b> ${n.how}</div>`:''}</div>`).join(''); const chk=Object.values(PLACES).filter(p=>p.check_realtime&&p.check_realtime!=='-').map(p=>`<div class="item"><div class="t">${p.user_name}</div><div class="s">${p.check_realtime}</div></div>`).join(''); $('#notesBody').innerHTML=`<div class="s" style="color:var(--muted)">지인에게 받은 일정이라 확정하지 못한 항목입니다. 지도에는 회색 물음표 핀으로 표시됩니다.</div>${unk}<h3>출발 전 실시간 확인 목록</h3>${chk}`; }
-function renderSources(){ $('#sourcesBody').innerHTML=`<div class="item"><div class="t">확인 시점 ${META.checked_at}</div><div class="s">${META.coordinate_note}</div><div class="s">출처가 없거나 확인되지 않은 값은 unverified로 표시했고, 영업시간은 공식 사이트·타베로그·구글맵을 교차 확인했습니다. 임시 휴무·행사는 당일 재확인이 필요합니다.</div></div>`+Object.values(PLACES).map(p=>`<div class="item"><div class="t">${p.user_name} <span class="st ${p.target_status==='open'?'ok':'check'}">${p.confidence}</span></div><div class="s">${p.verified_name_ja||''}</div>${(p.sources||[]).map(u=>`<a href="${u}" target="_blank" rel="noopener">${u}</a>`).join('<br>')}</div>`).join(''); }
-function renderSettings(){ $('#settingsBody').innerHTML=`<label class="f">Day 1 시작 시각 (텐진 도착·짐 보관)<input type="time" id="st1" value="${STATE.start[1]}"></label><label class="f">Day 2 시작 시각 (晴レ吉 체크아웃)<input type="time" id="st2" value="${STATE.start[2]}"></label><label class="tog"><span>거리 애니메이션 (사람·차량·열차)</span><input type="checkbox" id="amb" ${STATE.ambient?'checked':''}></label><div class="item"><div class="s">시작 시각을 바꾸면 전체 일정이 함께 밀립니다. 개점 시간이 정해진 곳(효탄스시 11:30, 포켓몬센터 10:00, 블루윙 16:00, 미츠바치 17:30)은 도착이 빠르면 "대기"로 표시됩니다.</div></div><div class="item"><div class="s">저사양 기기·모션 최소화 설정에서는 장식 애니메이션이 자동으로 줄어듭니다. (현재: ${RM?'모션 최소화':LOWPERF?'저사양 모드':'일반'})</div></div>`; const re=()=>{ renderCards(); drawScene(STATE.scene); if(STATE.sel) select(STATE.sel,false); }; $('#st1').onchange=e=>{STATE.start[1]=e.target.value||'11:00';save();re();}; $('#st2').onchange=e=>{STATE.start[2]=e.target.value||'08:45';save();re();}; $('#amb').onchange=e=>{STATE.ambient=e.target.checked;save();drawScene(STATE.scene);}; }
-// legend
-$('#legend').innerHTML=['walk','subway','shinkansen','train'].map(k=>`<span><i style="border-color:${MODES[k].c==='#f2eee6'?'#9a958a':MODES[k].c};${MODES[k].d?'border-style:dashed':''}"></i>${MODES[k].n}</span>`).join('');
-// boot
+$('#btnNotes').onclick=()=>{renderNotes();$('#scrNotes').classList.add('open');}; $('#btnSources').onclick=()=>{renderSources();$('#scrSources').classList.add('open');}; $('#btnSettings').onclick=()=>{renderSettings();$('#scrSettings').classList.add('open');};
+function renderNotes(){const unk=NOTES.map(n=>`<div class="item"><div class="t">${n.t}</div><div class="s">${n.s}</div>${n.opts?`<ul>${n.opts.map(o=>`<li>${o}</li>`).join('')}</ul>`:''}${n.how?`<div class="s"><b>확인 방법:</b> ${n.how}</div>`:''}</div>`).join('');const chk=Object.values(PLACES).filter(p=>p.check_realtime&&p.check_realtime!=='-').map(p=>`<div class="item"><div class="t">${p.user_name}</div><div class="s">${p.check_realtime}</div></div>`).join('');$('#notesBody').innerHTML=`<div class="s" style="color:var(--muted)">지인에게 받은 일정이라 확정하지 못한 항목입니다. 지도에는 회색 물음표 핀으로 표시됩니다.</div>${unk}<h3>출발 전 실시간 확인 목록</h3>${chk}`;}
+function renderSources(){$('#sourcesBody').innerHTML=`<div class="item"><div class="t">확인 시점 ${META.checked_at}</div><div class="s">${META.coordinate_note}</div><div class="s">3D 지도는 OpenStreetMap 기여자 데이터(ODbL)로 건물·도로·철도·수면·공원을 실제 위치와 크기로 세운 것입니다. 건물 높이는 OSM의 층수·높이 태그가 있으면 그 값을, 없으면 용도별 기본값을 씁니다.</div></div>`+Object.values(PLACES).map(p=>`<div class="item"><div class="t">${p.user_name} <span class="st ${p.target_status==='open'?'ok':'check'}">${p.confidence}</span></div><div class="s">${p.verified_name_ja||''}</div>${(p.sources||[]).map(u=>`<a href="${u}" target="_blank" rel="noopener">${u}</a>`).join('<br>')}</div>`).join('');}
+function renderSettings(){$('#settingsBody').innerHTML=`<label class="f">Day 1 시작 시각 (텐진 도착·짐 보관)<input type="time" id="st1" value="${STATE.start[1]}"></label><label class="f">Day 2 시작 시각 (晴レ吉 체크아웃)<input type="time" id="st2" value="${STATE.start[2]}"></label><label class="tog"><span>거리 애니메이션 (사람·차량·열차)</span><input type="checkbox" id="amb" ${STATE.ambient?'checked':''}></label><div class="item"><div class="s">시작 시각을 바꾸면 전체 일정이 함께 밀립니다. 개점 시간이 정해진 곳(효탄스시 11:30, 포켓몬센터 10:00, 블루윙 16:00, 미츠바치 17:30)은 도착이 빠르면 "대기"로 표시됩니다.</div></div><div class="item"><div class="s">두 손가락으로 회전·확대, 한 손가락으로 이동. 저사양 기기·모션 최소화 설정에서는 사람과 차량 수가 줄거나 멈춥니다. (현재: ${W.reduced?'모션 최소화':W.lowperf?'저사양 모드':'일반'})</div></div>`;const re=()=>{renderCards();if(STATE.sel)select(STATE.sel,false);};$('#st1').onchange=e=>{STATE.start[1]=e.target.value||'11:00';save();re();};$('#st2').onchange=e=>{STATE.start[2]=e.target.value||'08:45';save();re();};$('#amb').onchange=async e=>{STATE.ambient=e.target.checked;save();W.ambient=STATE.ambient&&!W.reduced;const sc=STATE.scene;STATE.scene=null;await showScene(sc);if(STATE.sel)select(STATE.sel,false);};}
+$('#legend').innerHTML=['walk','subway','shinkansen','train'].map(k=>`<span><i style="border-color:${MODES[k].c==='#f7f3ea'?'#9a958a':MODES[k].c};${MODES[k].dash?'border-style:dashed':''}"></i>${MODES[k].n}</span>`).join('');
 setDay(1);
-})();
 </script>
 </body>
 </html>
