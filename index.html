@@ -121,13 +121,10 @@
 <body>
 <div id="top">
   <div class="row">
-    <div class="brand">후쿠오카 · 기타큐슈 <small>2026.09.27–28</small></div>
+    <div class="brand">후쿠오카 · 기타큐슈 <small>2026.09.27–29</small></div>
     <button class="iconbtn" id="btnNotes">메모</button><button class="iconbtn" id="btnSources">출처</button><button class="iconbtn" id="btnSettings">설정</button>
   </div>
-  <div class="seg" role="tablist" id="dayTabs">
-    <button role="tab" data-day="1" aria-selected="true"><b>DAY 1</b>9/27 일 · 텐진</button>
-    <button role="tab" data-day="2" aria-selected="false"><b>DAY 2</b>9/28 월 · 고쿠라·모지코</button>
-  </div>
+  <div class="seg" role="tablist" id="dayTabs"></div>
   <div id="regions" role="tablist" hidden></div>
 </div>
 <div id="stage">
@@ -158,7 +155,7 @@ import { World } from './world.js';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const MODES={walk:{c:'#ffd93a',n:'도보',hex:0xd8391c,dash:true},subway:{c:'#2e3d5c',n:'지하철',hex:0x2e3d5c,dash:true},shinkansen:{c:'#3b5bdb',n:'신칸센',hex:0x3b5bdb},train:{c:'#2f7f86',n:'JR 재래선',hex:0x2f7f86},bus:{c:'#b8860b',n:'버스',hex:0xb8860b},taxi:{c:'#e0b100',n:'택시',hex:0xe0b100},stay:{c:'transparent',n:''}};
 const CAT={food:0xe36b4f,shop:0x3c9a8f,gacha:0x9b6bd6,camera:0x3f5a9c,hotel:0xe0524a,transit:0x4a78d0,cafe:0xa86b3c,sight:0xe0a83a,unknown:0x8f8a80};
-const STATE={day:1,scene:null,sel:null,labels:false,start:{1:'11:00',2:'08:45'},done:{},ambient:true,heroAt:null,route:null,heroOn:null};
+const STATE={day:1,scene:null,sel:null,labels:false,start:{1:'11:00',2:'08:45',3:'10:00'},done:{},ambient:true,heroAt:null,route:null,heroOn:null};
 try{const s=JSON.parse(localStorage.getItem('fk_state')||'{}');Object.assign(STATE.start,s.start||{});Object.assign(STATE.done,s.done||{});if(s.ambient===false)STATE.ambient=false;}catch(e){}
 const save=()=>{try{localStorage.setItem('fk_state',JSON.stringify({start:STATE.start,done:STATE.done,ambient:STATE.ambient}));}catch(e){}};
 const toMin=t=>{const[h,m]=t.split(':').map(Number);return h*60+m;}, fmt=m=>{m=Math.round(m);return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}, dur=m=>m>=60?(Math.floor(m/60)+'시간'+(m%60?' '+m%60+'분':'')):m+'분';
@@ -198,7 +195,7 @@ async function showWide(){
     shin.forEach(([x,z])=>{const p=new THREE.Mesh(new THREE.BoxGeometry(3,7,3),mat(0xbdb7ab));p.position.set(x,3.5,z);A.group.add(p);});
     const br=new THREE.Mesh(new THREE.BoxGeometry(6,3,220),mat(0xcfcac0)); br.position.set(830,26,-260); A.group.add(br); [[830,-160],[830,-360]].forEach(([x,z])=>{const t=new THREE.Mesh(new THREE.BoxGeometry(5,60,5),mat(0xcfcac0));t.position.set(x,30,z);A.group.add(t);});
     A.railLines=[{pts:shin.map(p=>[p[0],-p[1]]),y:8.2,kind:'shinkansen'},{pts:loc.map(p=>[p[0],-p[1]]),y:0.9,kind:'local'}];
-    A.legPos={d2_leg1:[0,50],d2_leg2:[560,-30],d2_leg3:[100,45]};
+    A.legPos={d2_leg1:[0,50],d2_leg2:[560,-30],d2_leg3:[520,-10],d2_leg4:[60,70]};
     W.areas.wide=A;
   }
   const A=W.areas.wide; if(W.cur&&W.cur!==A)W.cur.group.visible=false; W.cur=A; A.group.visible=true; W._clearDyn();
@@ -287,13 +284,13 @@ function showDetail(s,tl){ const p=s.p||{}; $('#dTh').src=s.thumb||''; $('#dTh')
   $('#sheet').classList.add('open'); }
 function closeSheet(){$('#sheet').classList.remove('open');}
 function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2400);}
-$('#dClose').onclick=closeSheet; $$('#dayTabs button').forEach(b=>b.onclick=()=>setDay(+b.dataset.day));
+$('#dClose').onclick=closeSheet; $('#dayTabs').innerHTML=Object.keys(DAYS).map(d=>`<button role="tab" data-day="${d}" aria-selected="${d==='1'}"><b>DAY ${d}</b>${DAYS[d].short||DAYS[d].label}</button>`).join(''); $$('#dayTabs button').forEach(b=>b.onclick=()=>setDay(+b.dataset.day));
 (()=>{const sh=$('#sheet');let y0=null;sh.addEventListener('pointerdown',e=>{if(e.target.closest('.bd')&&$('#dBody').scrollTop>0)return;y0=e.clientY;});sh.addEventListener('pointermove',e=>{if(y0==null)return;const dy=e.clientY-y0;if(dy>0)sh.style.transform=`translateY(${dy}px)`;});const up=e=>{if(y0==null)return;const dy=e.clientY-y0;sh.style.transform='';if(dy>90)closeSheet();y0=null;};sh.addEventListener('pointerup',up);sh.addEventListener('pointercancel',up);})();
 $$('.screen [data-close]').forEach(b=>b.onclick=()=>b.closest('.screen').classList.remove('open'));
 $('#btnNotes').onclick=()=>{renderNotes();$('#scrNotes').classList.add('open');}; $('#btnSources').onclick=()=>{renderSources();$('#scrSources').classList.add('open');}; $('#btnSettings').onclick=()=>{renderSettings();$('#scrSettings').classList.add('open');};
 function renderNotes(){const unk=NOTES.map(n=>`<div class="item"><div class="t">${n.t}</div><div class="s">${n.s}</div>${n.opts?`<ul>${n.opts.map(o=>`<li>${o}</li>`).join('')}</ul>`:''}${n.how?`<div class="s"><b>확인 방법:</b> ${n.how}</div>`:''}</div>`).join('');const chk=Object.values(PLACES).filter(p=>p.check_realtime&&p.check_realtime!=='-').map(p=>`<div class="item"><div class="t">${p.user_name}</div><div class="s">${p.check_realtime}</div></div>`).join('');$('#notesBody').innerHTML=`<div class="s" style="color:var(--muted)">지인에게 받은 일정이라 확정하지 못한 항목입니다. 지도에는 회색 물음표 핀으로 표시됩니다.</div>${unk}<h3>출발 전 실시간 확인 목록</h3>${chk}`;}
 function renderSources(){$('#sourcesBody').innerHTML=`<div class="item"><div class="t">확인 시점 ${META.checked_at}</div><div class="s">${META.coordinate_note}</div><div class="s">3D 지도는 OpenStreetMap 기여자 데이터(ODbL)로 건물·도로·철도·수면·공원을 실제 위치와 크기로 세운 것입니다. 건물 높이는 OSM의 층수·높이 태그가 있으면 그 값을, 없으면 용도별 기본값을 씁니다.</div></div>`+Object.values(PLACES).map(p=>`<div class="item"><div class="t">${p.user_name} <span class="st ${p.target_status==='open'?'ok':'check'}">${p.confidence}</span></div><div class="s">${p.verified_name_ja||''}</div>${(p.sources||[]).map(u=>`<a href="${u}" target="_blank" rel="noopener">${u}</a>`).join('<br>')}</div>`).join('');}
-function renderSettings(){$('#settingsBody').innerHTML=`<label class="f">Day 1 시작 시각 (텐진 도착·짐 보관)<input type="time" id="st1" value="${STATE.start[1]}"></label><label class="f">Day 2 시작 시각 (晴レ吉 체크아웃)<input type="time" id="st2" value="${STATE.start[2]}"></label><label class="tog"><span>거리 애니메이션 (사람·차량·열차)</span><input type="checkbox" id="amb" ${STATE.ambient?'checked':''}></label><div class="item"><div class="s">시작 시각을 바꾸면 전체 일정이 함께 밀립니다. 개점 시간이 정해진 곳(효탄스시 11:30, 포켓몬센터 10:00, 블루윙 16:00, 미츠바치 17:30)은 도착이 빠르면 "대기"로 표시됩니다.</div></div><div class="item"><div class="s">두 손가락으로 회전·확대, 한 손가락으로 이동. 저사양 기기·모션 최소화 설정에서는 사람과 차량 수가 줄거나 멈춥니다. (현재: ${W.reduced?'모션 최소화':W.lowperf?'저사양 모드':'일반'})</div></div>`;const re=()=>{renderCards();if(STATE.sel)select(STATE.sel,false);};$('#st1').onchange=e=>{STATE.start[1]=e.target.value||'11:00';save();re();};$('#st2').onchange=e=>{STATE.start[2]=e.target.value||'08:45';save();re();};$('#amb').onchange=async e=>{STATE.ambient=e.target.checked;save();W.ambient=STATE.ambient&&!W.reduced;const sc=STATE.scene;STATE.scene=null;await showScene(sc);if(STATE.sel)select(STATE.sel,false);};}
+function renderSettings(){$('#settingsBody').innerHTML=`<label class="f">Day 1 시작 시각 (텐진 도착·짐 보관)<input type="time" id="st1" value="${STATE.start[1]}"></label><label class="f">Day 2 시작 시각 (晴レ吉 체크아웃)<input type="time" id="st2" value="${STATE.start[2]}"></label><label class="f">Day 3 시작 시각 (M&M카페)<input type="time" id="st3" value="${STATE.start[3]}"></label><label class="tog"><span>거리 애니메이션 (사람·차량·열차)</span><input type="checkbox" id="amb" ${STATE.ambient?'checked':''}></label><div class="item"><div class="s">시작 시각을 바꾸면 전체 일정이 함께 밀립니다. 개점 시간이 정해진 곳(효탄스시 11:30, 포켓몬센터 10:00, 블루윙 16:00, 미츠바치 17:30)은 도착이 빠르면 "대기"로 표시됩니다.</div></div><div class="item"><div class="s">두 손가락으로 회전·확대, 한 손가락으로 이동. 저사양 기기·모션 최소화 설정에서는 사람과 차량 수가 줄거나 멈춥니다. (현재: ${W.reduced?'모션 최소화':W.lowperf?'저사양 모드':'일반'})</div></div>`;const re=()=>{renderCards();if(STATE.sel)select(STATE.sel,false);};$('#st1').onchange=e=>{STATE.start[1]=e.target.value||'11:00';save();re();};$('#st2').onchange=e=>{STATE.start[2]=e.target.value||'08:45';save();re();};$('#st3').onchange=e=>{STATE.start[3]=e.target.value||'10:00';save();re();};$('#amb').onchange=async e=>{STATE.ambient=e.target.checked;save();W.ambient=STATE.ambient&&!W.reduced;const sc=STATE.scene;STATE.scene=null;await showScene(sc);if(STATE.sel)select(STATE.sel,false);};}
 $('#legend').innerHTML=['walk','subway','shinkansen','train'].map(k=>`<span><i style="border-color:${MODES[k].c};${MODES[k].dash?'border-style:dashed':''}"></i>${MODES[k].n}</span>`).join('');
 setDay(1);
 </script>
