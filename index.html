@@ -149,10 +149,10 @@
 <div class="screen" id="scrSources"><header><h2>데이터 출처 · 확인 시점</h2><button class="iconbtn" data-close>닫기</button></header><div class="bd" id="sourcesBody"></div></div>
 <div class="screen" id="scrSettings"><header><h2>설정</h2><button class="iconbtn" data-close>닫기</button></header><div class="bd" id="settingsBody"></div></div>
 
-<script src="data.js?v=202609242103"></script>
+<script src="data.js?v=202609242106"></script>
 <script type="module">
 import * as THREE from 'three';
-import { World } from './world.js?v=202609242103';
+import { World } from './world.js?v=202609242106';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const MODES={walk:{c:'#ffd93a',n:'도보',hex:0xd8391c,dash:true},subway:{c:'#2e3d5c',n:'지하철',hex:0x2e3d5c,dash:true},shinkansen:{c:'#3b5bdb',n:'신칸센',hex:0x3b5bdb},train:{c:'#2f7f86',n:'JR 재래선',hex:0x2f7f86},bus:{c:'#b8860b',n:'버스',hex:0xb8860b},taxi:{c:'#e0b100',n:'택시',hex:0xe0b100},stay:{c:'transparent',n:''}};
 const CAT={food:0xe36b4f,shop:0x3c9a8f,gacha:0x9b6bd6,camera:0x3f5a9c,hotel:0xe0524a,transit:0x4a78d0,cafe:0xa86b3c,sight:0xe0a83a,unknown:0x8f8a80};
@@ -229,8 +229,8 @@ W.onFrame=()=>{
 $('#zin').onclick=()=>W.zoomBy(1.3,stage.clientWidth/2,stage.clientHeight/2); $('#zout').onclick=()=>W.zoomBy(1/1.3,stage.clientWidth/2,stage.clientHeight/2);
 $('#rot').onclick=()=>W.rotateBy(Math.PI/9);
 $('#fit').onclick=()=>fitStops(true);
-$('#findMe').onclick=()=>{ if(!W.hero||!W.cur||W.cur.wide){toast('이 화면에는 내 캐릭터가 없습니다');return;} W.focus(W.hero.position.x,W.hero.position.z,Math.min(W.viewW,150),true); toast('캐릭터를 끌어서 경로 위에 놓을 수 있어요'); };
-W.heroDraggable=true;
+$('#findMe').onclick=()=>{ if(!W.hero||!W.cur||W.cur.wide){toast('이 화면에는 내 캐릭터가 없습니다');return;} W.focus(W.hero.position.x,W.hero.position.z,Math.min(W.viewW,150),true); toast('캐릭터를 0.3초 눌러 잡은 뒤 경로 위로 끌어 놓을 수 있어요'); };
+W.heroDraggable=true; W.onHeroHold=()=>toast('캐릭터를 잡았습니다 · 경로 위에 놓아주세요');
 W.onHeroDrop=(pos,orig)=>{ const A=W.cur; if(!A||A.wide){W.hero.position.copy(orig);return;} const tl=timeline(STATE.day); const stops=tl.stops.filter(s=>s.scene===A.name&&s.kind!=='leg'); let best=null; for(let i=1;i<stops.length;i++){ const a=stops[i-1],b=stops[i]; if(a.scene!==b.scene)continue; const r=routeFor(A,a,b); const np=World.nearestOnPath(r.pts,pos.x,-pos.z); if(!best||np.dist<best.np.dist) best={np,a,b,r}; } if(best&&best.np.dist<16){ W.hero.position.set(best.np.x,0.05,-best.np.y); W.heroCancel(); if(STATE.route&&!(STATE.route.from===best.a.id&&STATE.route.to===best.b.id)&&!(STATE.route.from===best.b.id&&STATE.route.to===best.a.id)){ STATE.route=null; W.clearRoutes(); } STATE.heroAt=best.a.id; STATE.heroOn={from:best.a.id,to:best.b.id,d:best.np.d}; toast(`${best.a.n}번→${best.b.n}번 경로 위에 놓았습니다`); } else { W.hero.position.copy(orig); toast('경로 위에만 놓을 수 있어요'); } };
 $('#lbl').onclick=()=>{STATE.labels=!STATE.labels;stage.classList.toggle('labels',STATE.labels);$('#lbl').classList.toggle('on',STATE.labels);};
 function fitStops(anim){ if(!pinObjs.length)return; let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9; for(const p of pinObjs){x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);z0=Math.min(z0,p.z);z1=Math.max(z1,p.z);} const span=Math.max(x1-x0,(z1-z0)*1.4,160); W.focus((x0+x1)/2,(z0+z1)/2,Math.min(1800,span*1.5),anim); }
