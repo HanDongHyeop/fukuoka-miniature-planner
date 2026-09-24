@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#ece8e0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%23c9452b%27/%3E%3Ccircle cx=%2716%27 cy=%2713%27 r=%276%27 fill=%27%23fff%27/%3E%3Cpath d=%27M16 30 8 18h16z%27 fill=%27%23fff%27/%3E%3C/svg%3E">
+<title>후쿠오카·기타큐슈 미니어처 플래너</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#ece8e0; --panel:#f8f6f1; --panel2:#fffdf9; --ink:#26231e; --muted:#6f6b63; --line:#d9d3c7;
+    --accent:#c9452b; --accent-soft:#f7e2dc; --teal:#2f7f86; --teal-soft:#d8ebec; --navy:#2e3d5c; --amber:#b8860b; --amber-soft:#f6ecd2;
+    --shadow:0 8px 24px rgba(40,30,20,.14);
+    --sat-b:env(safe-area-inset-bottom,0px); --sat-t:env(safe-area-inset-top,0px);
+    --font:"Noto Sans KR",system-ui,-apple-system,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;overscroll-behavior:none}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;display:flex;flex-direction:column;overflow:hidden;touch-action:manipulation}
+  button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+  /* ---------- top bar ---------- */
+  #top{padding:calc(8px + var(--sat-t)) 12px 8px;display:grid;gap:8px;background:var(--bg);z-index:5}
+  .row{display:flex;align-items:center;gap:8px}
+  .brand{font-weight:700;font-size:15px;letter-spacing:-.01em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brand small{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted);margin-left:6px}
+  .iconbtn{min-width:44px;height:44px;display:grid;place-items:center;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:12px;font-weight:500;padding:0 10px}
+  .iconbtn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+  .seg button{flex:1;min-height:38px;border-radius:9px;font-weight:500;color:var(--muted);padding:0 10px;white-space:nowrap}
+  .seg button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+  .seg button b{font-family:var(--mono);font-weight:500;font-size:11px;margin-right:4px}
+  #regions{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -12px;padding:0 12px}
+  #regions::-webkit-scrollbar{display:none}
+  #regions button{min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:13px;white-space:nowrap}
+  #regions button[aria-selected="true"]{background:var(--teal);border-color:var(--teal);color:#fff}
+  #regions[hidden]{display:none}
+  /* ---------- map ---------- */
+  #stage{position:relative;flex:1;min-height:0;overflow:hidden;background:#e4dfd5;touch-action:none;cursor:grab}
+  #stage.drag{cursor:grabbing}
+  #world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+  #world img.scene{display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
+  #shade{position:absolute;inset:0;pointer-events:none}
+  #routes{position:absolute;inset:0;pointer-events:none;overflow:visible}
+  #routes .seg{opacity:.22;transition:opacity .3s}
+  #routes .seg.hot{opacity:1}
+  #routes .seg.hot path:last-child{animation:dash 1.2s linear infinite}
+  @keyframes dash{to{stroke-dashoffset:-30}}
+  #sprites{position:absolute;inset:0;pointer-events:none}
+  .spr{position:absolute;left:0;top:0;transform-origin:50% 100%;will-change:transform;image-rendering:auto}
+  .spr img{display:block;height:100%;width:auto}
+  .spr.flip img{transform:scaleX(-1)}
+  /* hero */
+  #hero{position:absolute;left:0;top:0;transform-origin:50% 100%;will-change:transform;pointer-events:none;z-index:3}
+  #hero .ring{position:absolute;left:50%;bottom:-6px;width:46px;height:20px;margin-left:-23px;border-radius:50%;border:3px solid var(--teal);box-shadow:0 0 0 6px rgba(47,127,134,.18), 0 0 18px rgba(47,127,134,.5);animation:ring 1.6s ease-in-out infinite}
+  #hero .body{position:relative;height:46px;display:block;filter:drop-shadow(0 2px 2px rgba(0,0,0,.25))}
+  #hero .body img{height:100%;width:auto;display:block}
+  #hero.flip .body img{transform:scaleX(-1)}
+  #hero .flag{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;animation:bob 1.4s ease-in-out infinite}
+  #hero .flag span{background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.25);white-space:nowrap;letter-spacing:.02em}
+  #hero .flag i{width:2px;height:10px;background:var(--accent);display:block}
+  @keyframes ring{0%,100%{transform:scale(1);opacity:.95}50%{transform:scale(1.18);opacity:.6}}
+  @keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-5px)}}
+  /* pins */
+  .pin{position:absolute;left:0;top:0;transform:translate(-50%,-100%);z-index:4;display:grid;justify-items:center;pointer-events:auto;cursor:pointer;min-width:44px;min-height:44px;padding-bottom:2px}
+  .pin .num{width:30px;height:30px;border-radius:50%;background:var(--panel2);border:2.5px solid var(--ink);display:grid;place-items:center;font-family:var(--mono);font-weight:500;font-size:13px;box-shadow:0 3px 8px rgba(0,0,0,.25);transition:transform .2s}
+  .pin .tail{width:2px;height:12px;background:var(--ink)}
+  .pin .dot{width:8px;height:4px;border-radius:50%;background:rgba(0,0,0,.35)}
+  .pin.sel .num{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(1.18)}
+  .pin.sel .tail{background:var(--accent)}
+  .pin.done .num{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .pin.check .num{border-color:var(--amber);border-style:dashed}
+  .pin.unknown .num{background:#8f8a80;color:#fff;border-color:#6f6b63}
+  .pin .lbl{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:2px;background:rgba(38,35,30,.85);color:#fff;font-size:11px;padding:2px 7px;border-radius:6px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none}
+  .pin.sel .lbl,#stage.labels .pin .lbl{opacity:1}
+  .pin.leg{transform:translate(-50%,-50%)}
+  .pin.leg .num{border-radius:8px}
+  /* map hud */
+  #hud{position:absolute;right:10px;top:10px;display:grid;gap:6px;z-index:6}
+  #hud button{width:44px;height:44px;border-radius:12px;background:rgba(248,246,241,.92);border:1px solid var(--line);box-shadow:var(--shadow);font-size:18px;display:grid;place-items:center;color:var(--ink)}
+  #hud button.on{background:var(--ink);color:var(--bg)}
+  #legend{position:absolute;left:10px;top:10px;z-index:6;display:flex;gap:4px;flex-wrap:wrap;max-width:62%}
+  #legend span{background:rgba(248,246,241,.9);border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:10px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+  #legend i{display:inline-block;width:18px;height:0;border-top:3px solid}
+  #toast{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(38,35,30,.9);color:#fff;padding:8px 14px;border-radius:999px;font-size:13px;z-index:7;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:92%}
+  #toast.show{opacity:1}
+  /* ---------- bottom ---------- */
+  #bottom{background:var(--panel);border-top:1px solid var(--line);padding-bottom:var(--sat-b);z-index:5;display:grid;gap:8px;padding-top:8px}
+  #summary{display:flex;gap:14px;padding:0 14px;font-size:12px;color:var(--muted);align-items:baseline;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+  #summary b{font-family:var(--mono);font-weight:500;color:var(--ink);font-size:13px}
+  #cards{display:flex;gap:10px;overflow-x:auto;padding:2px 14px 10px;scroll-snap-type:x mandatory;scrollbar-width:none}
+  #cards::-webkit-scrollbar{display:none}
+  .card{scroll-snap-align:center;flex:0 0 auto;width:196px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;display:grid;grid-template-columns:52px 1fr;gap:8px;padding:8px;text-align:left;min-height:72px;align-items:center;position:relative}
+  .card.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+  .card .th{width:52px;height:52px;border-radius:9px;background:var(--bg);display:grid;place-items:center;overflow:hidden}
+  .card .th img{max-width:92%;max-height:92%}
+  .card .t{font-weight:500;font-size:13px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card .m{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+  .card .n{position:absolute;left:-4px;top:-6px;width:20px;height:20px;border-radius:50%;background:var(--ink);color:var(--bg);font-family:var(--mono);font-size:11px;display:grid;place-items:center}
+  .card.check .n{background:var(--amber)} .card.unknown .n{background:#8f8a80} .card.leg .n{border-radius:5px;background:var(--navy)}
+  .st{display:inline-block;font-size:10px;padding:0 6px;border-radius:999px;line-height:16px;font-weight:500;white-space:nowrap}
+  .st.ok{background:var(--teal-soft);color:var(--teal)} .st.check{background:var(--amber-soft);color:var(--amber)} .st.unknown{background:#e6e2da;color:#6f6b63} .st.leg{background:#dde3ee;color:var(--navy)}
+  /* ---------- detail sheet ---------- */
+  #sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel2);border-radius:18px 18px 0 0;box-shadow:0 -10px 30px rgba(40,30,20,.18);z-index:8;transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.8,.2,1);max-height:60%;display:flex;flex-direction:column;padding-bottom:var(--sat-b)}
+  #sheet.open{transform:translateY(0)}
+  #sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 4px}
+  #sheet .hd{display:grid;grid-template-columns:64px 1fr auto;gap:12px;padding:6px 16px 10px;align-items:center;border-bottom:1px solid var(--line)}
+  #sheet .hd .th{width:64px;height:64px;border-radius:12px;background:var(--bg);display:grid;place-items:center;overflow:hidden}
+  #sheet .hd .th img{max-width:92%;max-height:92%}
+  #sheet .hd h2{font-size:16px;margin:0;line-height:1.25}
+  #sheet .hd .sub{font-size:12px;color:var(--muted);margin-top:2px}
+  #sheet .hd .time{font-family:var(--mono);font-size:12px;color:var(--ink);margin-top:4px}
+  #sheet .close{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--muted);font-size:20px}
+  #sheet .bd{overflow-y:auto;padding:12px 16px 16px;display:grid;gap:12px;font-size:13px}
+  .kv{display:grid;grid-template-columns:72px 1fr;gap:4px 10px}
+  .kv dt{color:var(--muted);font-size:12px} .kv dd{margin:0}
+  .box{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:6px;background:var(--panel)}
+  .box.warn{border-color:#e6cf8f;background:var(--amber-soft)} .box.ok{border-color:#bcd9db;background:var(--teal-soft)} .box.grey{background:#efece6}
+  .box h4{margin:0;font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.02em}
+  .box a{color:var(--teal);word-break:break-all}
+  .nav{display:flex;gap:8px}
+  .nav button{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-weight:500}
+  .nav button.go{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .mode{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px}
+  .mode i{display:inline-block;width:22px;border-top:3px solid;height:0}
+  /* ---------- overlay screens ---------- */
+  .screen{position:absolute;inset:0;background:var(--bg);z-index:20;display:none;flex-direction:column;padding-top:var(--sat-t)}
+  .screen.open{display:flex}
+  .screen header{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line)}
+  .screen header h2{font-size:16px;margin:0;flex:1}
+  .screen .bd{overflow-y:auto;padding:14px 14px calc(20px + var(--sat-b));display:grid;gap:12px;font-size:13px}
+  .screen .bd h3{font-size:14px;margin:8px 0 0}
+  .item{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:6px}
+  .item .t{font-weight:500}
+  .item .s{font-size:12px;color:var(--muted)}
+  .item ul{margin:0;padding-left:18px;display:grid;gap:4px}
+  .item a{color:var(--teal);word-break:break-all;font-size:12px}
+  label.f{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+  input[type=time],select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--ink);min-height:44px}
+  .tog{display:flex;align-items:center;justify-content:space-between;min-height:44px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:0 12px}
+  .tog input{width:22px;height:22px}
+  /* landscape / wide */
+  @media (min-width:760px) and (orientation:landscape){
+    body{display:grid;grid-template-columns:1fr 360px;grid-template-rows:auto 1fr}
+    #stage{grid-column:1;grid-row:1/3}
+    #top{grid-column:2;grid-row:1;border-left:1px solid var(--line);padding-top:14px}
+    .seg button{white-space:normal;line-height:1.2;font-size:13px}
+    #bottom{grid-column:2;grid-row:2;border-left:1px solid var(--line);border-top:0;min-height:0;grid-template-rows:auto 1fr}
+    #summary{flex-wrap:wrap;white-space:normal;row-gap:2px}
+    #cards{flex-direction:column;overflow-y:auto;overflow-x:hidden;scroll-snap-type:none;padding:2px 12px 12px;min-height:0}
+    .card{width:auto}
+    #sheet{right:auto;width:380px;left:12px;bottom:12px;border-radius:18px;max-height:88%}
+    #legend{max-width:70%}
+  }
+  @media (prefers-reduced-motion:reduce){#hero .ring,#hero .flag{animation:none}}
+</style>
+</head>
+<body>
+<div id="top">
+  <div class="row">
+    <div class="brand">후쿠오카 · 기타큐슈 <small id="dateLbl">2026.09.27–28</small></div>
+    <button class="iconbtn" id="btnNotes" aria-label="확인 메모">메모</button>
+    <button class="iconbtn" id="btnSources" aria-label="데이터 출처">출처</button>
+    <button class="iconbtn" id="btnSettings" aria-label="설정">설정</button>
+  </div>
+  <div class="seg" role="tablist" id="dayTabs">
+    <button role="tab" data-day="1" aria-selected="true"><b>DAY 1</b>9/27 일 · 텐진</button>
+    <button role="tab" data-day="2" aria-selected="false"><b>DAY 2</b>9/28 월 · 고쿠라·모지코</button>
+  </div>
+  <div id="regions" role="tablist" hidden></div>
+</div>
+
+<div id="stage">
+  <div id="world">
+    <img class="scene" id="sceneImg" alt="">
+    <svg id="shade"></svg>
+    <svg id="routes"></svg>
+    <div id="sprites"></div>
+    <div id="pins"></div>
+    <div id="hero" hidden><div class="ring"></div><div class="body"><img id="heroImg" alt=""></div><div class="flag"><span>나</span><i></i></div></div>
+  </div>
+  <div id="legend"></div>
+  <div id="hud">
+    <button id="zin" aria-label="확대">+</button>
+    <button id="zout" aria-label="축소">−</button>
+    <button id="fit" aria-label="전체 보기">⤢</button>
+    <button id="lbl" aria-label="이름 표시">Aa</button>
+  </div>
+  <div id="toast"></div>
+  <div id="sheet" aria-live="polite">
+    <div class="grab"></div>
+    <div class="hd"><div class="th"><img id="dTh" alt=""></div><div><h2 id="dTitle"></h2><div class="sub" id="dSub"></div><div class="time" id="dTime"></div></div><button class="close" id="dClose" aria-label="닫기">×</button></div>
+    <div class="bd" id="dBody"></div>
+  </div>
+</div>
+
+<div id="bottom">
+  <div id="summary"></div>
+  <div id="cards"></div>
+</div>
+
+<div class="screen" id="scrNotes"><header><h2>확인 메모 · 미확정 항목</h2><button class="iconbtn" data-close>닫기</button></header><div class="bd" id="notesBody"></div></div>
+<div class="screen" id="scrSources"><header><h2>데이터 출처 · 확인 시점</h2><button class="iconbtn" data-close>닫기</button></header><div class="bd" id="sourcesBody"></div></div>
+<div class="screen" id="scrSettings"><header><h2>설정</h2><button class="iconbtn" data-close>닫기</button></header><div class="bd" id="settingsBody"></div></div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const LOWPERF = (navigator.hardwareConcurrency||8) <= 4 || (navigator.deviceMemory||8) <= 4;
+const MODES = {walk:{c:'#f2eee6',d:'8 7',n:'도보'},subway:{c:'#2e3d5c',d:'2 6',n:'지하철'},shinkansen:{c:'#3b5bdb',d:'',n:'신칸센'},train:{c:'#2f7f86',d:'',n:'JR 재래선'},bus:{c:'#b8860b',d:'',n:'버스'},taxi:{c:'#e0b100',d:'',n:'택시'},stay:{c:'transparent',d:'',n:''}};
+const STATE = {day:1, scene:'tenjin', sel:null, labels:false, ambient:!RM, start:{1:'11:00',2:'08:45'}, done:{} };
+try{ const s=JSON.parse(localStorage.getItem('fk_state')||'{}'); Object.assign(STATE.start, s.start||{}); Object.assign(STATE.done, s.done||{}); if(s.ambient===false) STATE.ambient=false; }catch(e){}
+const save=()=>{ try{ localStorage.setItem('fk_state', JSON.stringify({start:STATE.start,done:STATE.done,ambient:STATE.ambient})); }catch(e){} };
+
+// ---------- time helpers ----------
+const toMin = t=>{ const [h,m]=t.split(':').map(Number); return h*60+m; };
+const fmt = m=>{ m=Math.round(m); return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
+const dur = m=> m>=60 ? (Math.floor(m/60)+'시간'+(m%60?' '+m%60+'분':'')) : m+'분';
+function haversine(a,b){ const R=6371000,toR=x=>x*Math.PI/180; const dLat=toR(b.lat-a.lat),dLng=toR(b.lng-a.lng); const s=Math.sin(dLat/2)**2+Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLng/2)**2; return 2*R*Math.asin(Math.sqrt(s)); }
+
+// compute timeline for a day
+function timeline(day){
+  const stops = DAYS[day].stops.map(s=>Object.assign({}, s));
+  let t = toMin(STATE.start[day]);
+  let prev=null;
+  stops.forEach((s,i)=>{
+    const p = PLACES[s.place]||{};
+    s.p=p;
+    if(i>0){ t += s.travel||0; }
+    s.arriveRaw=t;
+    if(s.notBefore && t<toMin(s.notBefore)){ s.wait = toMin(s.notBefore)-t; t=toMin(s.notBefore); }
+    s.arrive=t; s.depart=t+(s.dur||0); t=s.depart;
+    if(prev && s.mode==='walk' && p.lat && prev.p.lat){ s.dist = Math.round(haversine(prev.p,p)*1.3); }
+    else s.dist = s.distFixed||0;
+    prev=s;
+  });
+  const walkM = stops.reduce((a,s)=>a+(s.mode==='walk'?s.dist:0),0);
+  const walkT = stops.reduce((a,s)=>a+(s.mode==='walk'?(s.travel||0):0),0);
+  const transitT = stops.reduce((a,s)=>a+(s.mode&&s.mode!=='walk'&&s.mode!=='stay'?(s.travel||0):0),0);
+  const stayT = stops.reduce((a,s)=>a+(s.dur||0),0);
+  return {stops, walkM, walkT, transitT, stayT, end:t};
+}
+
+// ---------- map view ----------
+const stage=$('#stage'), world=$('#world'), img=$('#sceneImg'), shade=$('#shade'), routes=$('#routes'), spritesEl=$('#sprites'), pinsEl=$('#pins'), hero=$('#hero');
+const view={x:0,y:0,s:1,fitS:1,w:1,h:1};
+function clampView(){ const sw=stage.clientWidth, sh=stage.clientHeight, W=view.w*view.s, H=view.h*view.s; if(W<=sw) view.x=(sw-W)/2; else view.x=Math.min(0,Math.max(sw-W,view.x)); if(H<=sh) view.y=(sh-H)/2; else view.y=Math.min(0,Math.max(sh-H,view.y)); }
+function applyView(){ clampView(); world.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.s})`; world.style.setProperty('--inv', 1/view.s); pinsEl.querySelectorAll('.pin').forEach(p=>p.style.setProperty('--inv',Math.min(1.6,Math.max(.7,1/view.s)))); }
+function fitView(anim){ const sw=stage.clientWidth, sh=stage.clientHeight; view.fitS=Math.min(sw/view.w, sh/view.h); view.s=view.fitS*1.02; view.x=(sw-view.w*view.s)/2; view.y=(sh-view.h*view.s)/2; if(anim){world.style.transition='transform .35s';setTimeout(()=>world.style.transition='',360);} applyView(); }
+function centerOn(px,py,scale,fy){ const sw=stage.clientWidth, sh=stage.clientHeight; if(scale) view.s=Math.max(view.fitS*.8,Math.min(view.fitS*3.2,scale)); view.x=sw/2-px*view.s; view.y=sh*(fy||0.45)-py*view.s; world.style.transition='transform .4s cubic-bezier(.2,.8,.2,1)'; setTimeout(()=>world.style.transition='',420); applyView(); }
+function zoomAt(f,cx,cy){ const ns=Math.max(view.fitS*.8,Math.min(view.fitS*3.2,view.s*f)); const k=ns/view.s; view.x=cx-(cx-view.x)*k; view.y=cy-(cy-view.y)*k; view.s=ns; applyView(); }
+// gestures
+let ptrs=new Map(), last=null, pinchD=0, moved=false;
+stage.addEventListener('pointerdown',e=>{ if(e.target.closest('#hud,#sheet,.pin')) return; stage.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(ptrs.size===1){last={x:e.clientX,y:e.clientY};moved=false;stage.classList.add('drag');} if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinchD=Math.hypot(a.x-b.x,a.y-b.y);} });
+stage.addEventListener('pointermove',e=>{ if(!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(ptrs.size===1&&last){ const dx=e.clientX-last.x, dy=e.clientY-last.y; if(Math.abs(dx)+Math.abs(dy)>2) moved=true; view.x+=dx; view.y+=dy; last={x:e.clientX,y:e.clientY}; applyView(); } else if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y); if(pinchD){ const r=stage.getBoundingClientRect(); zoomAt(d/pinchD,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top); } pinchD=d; } });
+const endPtr=e=>{ ptrs.delete(e.pointerId); if(ptrs.size<2) pinchD=0; if(ptrs.size===0){last=null;stage.classList.remove('drag');} };
+stage.addEventListener('pointerup',endPtr); stage.addEventListener('pointercancel',endPtr);
+stage.addEventListener('wheel',e=>{ e.preventDefault(); const r=stage.getBoundingClientRect(); zoomAt(e.deltaY<0?1.15:1/1.15,e.clientX-r.left,e.clientY-r.top); },{passive:false});
+$('#zin').onclick=()=>zoomAt(1.3,stage.clientWidth/2,stage.clientHeight/2);
+$('#zout').onclick=()=>zoomAt(1/1.3,stage.clientWidth/2,stage.clientHeight/2);
+$('#fit').onclick=()=>fitView(true);
+$('#lbl').onclick=()=>{ STATE.labels=!STATE.labels; stage.classList.toggle('labels',STATE.labels); $('#lbl').classList.toggle('on',STATE.labels); };
+addEventListener('resize',()=>fitView(false));
+
+// ---------- scene ----------
+let sceneStops=[], anims=[], rafId=0, lastT=0;
+function loadScene(name, then){
+  const sc=SCENES[name]; STATE.scene=name;
+  cancelAnimationFrame(rafId); anims=[]; spritesEl.innerHTML='';
+  img.onload=()=>{ view.w=img.naturalWidth; view.h=img.naturalHeight; world.style.width=view.w+'px'; world.style.height=view.h+'px'; fitView(false); drawScene(name); if(then) then(); };
+  if(img.src.endsWith(sc.img)&&img.complete){ img.onload(); } else img.src=sc.img;
+  $$('#regions button').forEach(b=>b.setAttribute('aria-selected', b.dataset.scene===name));
+}
+const P=(sc,pt)=>[pt[0]/100*view.w, pt[1]/100*view.h];
+function drawScene(name){
+  const sc=SCENES[name]; const tl=timeline(STATE.day); sceneStops=tl.stops.filter(s=>s.scene===name);
+  // shade + spotlights
+  const W=view.w,H=view.h; shade.setAttribute('viewBox',`0 0 ${W} ${H}`); shade.setAttribute('width',W); shade.setAttribute('height',H);
+  let defs=`<defs><radialGradient id="fade"><stop offset="0" stop-color="#000"/><stop offset=".55" stop-color="#000"/><stop offset="1" stop-color="#fff"/></radialGradient><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#fff"/>`;
+  let rings='';
+  sceneStops.forEach(s=>{ if(s.kind==='leg') return; const [x,y]=P(sc,s.at); const r=(s.r||9)/100*W; defs+=`<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r*.75}" fill="url(#fade)"/>`; rings+=`<ellipse class="halo" cx="${x}" cy="${y}" rx="${r*.62}" ry="${r*.62*.75}" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="3" stroke-dasharray="10 8"/>`; });
+  defs+='</mask></defs>';
+  shade.innerHTML=defs+`<rect width="${W}" height="${H}" fill="#2a2418" fill-opacity="${sc.dim==null?.30:sc.dim}" mask="url(#m)"/>`+rings;
+  // routes
+  routes.setAttribute('viewBox',`0 0 ${W} ${H}`); routes.setAttribute('width',W); routes.setAttribute('height',H);
+  let paths='';
+  for(let i=1;i<sceneStops.length;i++){ const a=sceneStops[i-1], b=sceneStops[i]; if(b.kind==='leg'||a.kind==='leg') continue; const m=MODES[b.mode]||MODES.walk; const pts=(b.via||[]).map(v=>P(sc,v)); const all=[P(sc,a.at),...pts,P(sc,b.at)]; const d='M'+all.map(p=>p.join(',')).join(' L'); paths+=`<g class="seg" data-a="${a.id}" data-b="${b.id}"><path d="${d}" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="${m.c}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" ${m.d?`stroke-dasharray="${m.d}"`:''} /></g>`; }
+  if(sc.legPath){ const all=sc.legPath.map(v=>P(sc,v)); const d='M'+all.map(p=>p.join(',')).join(' L'); paths+=`<path d="${d}" fill="none" stroke="rgba(0,0,0,.3)" stroke-width="10" stroke-linecap="round"/><path d="${d}" fill="none" stroke="#3b5bdb" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 0"/>`; }
+  routes.innerHTML=paths;
+  // pins
+  pinsEl.innerHTML='';
+  sceneStops.forEach(s=>{ const [x,y]=P(sc,s.at); const el=document.createElement('button'); el.className='pin '+(s.kind==='leg'?'leg ':'')+(s.status||'ok')+(STATE.done[s.id]?' done':''); el.style.left=x+'px'; el.style.top=y+'px'; el.innerHTML=`<div class="num">${s.kind==='leg'?'🚄':s.n}</div><div class="tail"></div><div class="dot"></div><div class="lbl">${s.title}</div>`; el.dataset.id=s.id; el.style.transform=`translate(-50%,${s.kind==='leg'?'-50%':'-100%'}) scale(var(--inv,1))`; el.onclick=e=>{e.stopPropagation(); select(s.id,true);}; pinsEl.appendChild(el); });
+  applyView();
+  // ambient
+  if(STATE.ambient) buildAmbient(sc);
+  updateHero();
+  lastT=performance.now(); rafId=requestAnimationFrame(tick);
+}
+function buildAmbient(sc){
+  const mult = LOWPERF?0.5:1;
+  (sc.roads||[]).forEach(r=>{ const n=Math.max(1,Math.round((r.n||3)*mult)); for(let i=0;i<n;i++) addSprite(pick(SPR.cars), r.pts, 26+Math.random()*10, Math.random(), r.h||34, 'car', r.rev); });
+  (sc.walks||[]).forEach(w=>{ const n=Math.max(1,Math.round((w.n||4)*mult)); for(let i=0;i<n;i++) addSprite(pick(SPR.people), w.pts, 9+Math.random()*5, Math.random(), w.h||26, 'ppl', Math.random()<.5); });
+  (sc.rails||[]).forEach(r=>{ addSprite(SPR[r.spr]||SPR.train, r.pts, r.v||60, Math.random(), r.h||40, 'train', false, r.pause||2.5); });
+}
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function addSprite(src,pts,speed,prog,h,kind,rev,pause){ const el=document.createElement('div'); el.className='spr '+kind; el.style.height=h+'px'; el.innerHTML=`<img src="${src}" alt="">`; spritesEl.appendChild(el); const path=pathPx(pts); anims.push({el,path,speed,prog,rev,len:path.len,pause:pause||0,wait:0}); }
+function pathPx(pts){ const P2=pts.map(p=>[p[0]/100*view.w,p[1]/100*view.h]); const seg=[]; let len=0; for(let i=1;i<P2.length;i++){ const l=Math.hypot(P2[i][0]-P2[i-1][0],P2[i][1]-P2[i-1][1]); seg.push({a:P2[i-1],b:P2[i],l,s:len}); len+=l; } return {seg,len,pts:P2}; }
+function posAt(path,d){ d=Math.max(0,Math.min(path.len,d)); for(const s of path.seg){ if(d<=s.s+s.l||s===path.seg[path.seg.length-1]){ const t=s.l?(d-s.s)/s.l:0; return {x:s.a[0]+(s.b[0]-s.a[0])*t, y:s.a[1]+(s.b[1]-s.a[1])*t, dx:s.b[0]-s.a[0]}; } } return {x:path.pts[0][0],y:path.pts[0][1],dx:1}; }
+function tick(now){ const dt=Math.min(.05,(now-lastT)/1000); lastT=now; if(STATE.ambient){ for(const a of anims){ if(a.wait>0){a.wait-=dt;continue;} const dir=a.rev?-1:1; a.prog+=dir*a.speed*dt/a.len; if(a.prog>1||a.prog<0){ if(a.pause){a.wait=a.pause;} a.rev=!a.rev; a.prog=Math.max(0,Math.min(1,a.prog)); } const p=posAt(a.path,a.prog*a.len); const dx=a.rev?-p.dx:p.dx; a.el.classList.toggle('flip',dx<0); a.el.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`; } } tickHero(dt); rafId=requestAnimationFrame(tick); }
+
+// ---------- hero ----------
+let heroA=null;
+function updateHero(){ const tl=timeline(STATE.day); const idx=tl.stops.findIndex(s=>s.id===STATE.sel); const s=idx>=0?tl.stops[idx]:tl.stops[0]; hero.hidden=true; heroA=null; if(!s||s.scene!==STATE.scene) return; const sc=SCENES[STATE.scene]; const next=tl.stops[idx+1]; hero.hidden=false; if(next&&next.scene===STATE.scene&&next.kind!=='leg'&&s.kind!=='leg'&&!RM){ const pts=[s.at,...(next.via||[]),next.at]; heroA={path:pathPx(pts),prog:0,speed:14,pauseAt:0}; } else { const [x,y]=P(sc,s.at); hero.style.transform=`translate(${x}px,${y+4}px) translate(-50%,-100%)`; $('#heroImg').src=SPR.hero.idle; hero.classList.remove('flip'); } }
+function tickHero(dt){ if(!heroA) return; if(heroA.pauseAt>0){ heroA.pauseAt-=dt; return; } heroA.prog+=heroA.speed*dt/heroA.path.len; if(heroA.prog>=1){ heroA.prog=0; heroA.pauseAt=1.2; $('#heroImg').src=SPR.hero.idle; return; } const p=posAt(heroA.path,heroA.prog*heroA.path.len); const dx=p.dx; hero.classList.toggle('flip',dx<0); $('#heroImg').src=dx<0?SPR.hero.walkL:SPR.hero.walkR; hero.style.transform=`translate(${p.x}px,${p.y+4}px) translate(-50%,-100%)`; }
+
+// ---------- UI: day / regions / cards ----------
+function setDay(d){ STATE.day=d; STATE.sel=null; $$('#dayTabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.day==d)); const reg=$('#regions'); const scenes=DAYS[d].scenes; if(scenes.length>1){ reg.hidden=false; reg.innerHTML=scenes.map(s=>`<button role="tab" data-scene="${s}">${SCENES[s].label}</button>`).join(''); reg.querySelectorAll('button').forEach(b=>b.onclick=()=>{ loadScene(b.dataset.scene,()=>{ const first=sceneStops[0]; if(first) select(first.id,false); }); }); } else { reg.hidden=true; reg.innerHTML=''; } renderCards(); loadScene(scenes[0],()=>{ select(timeline(d).stops[0].id,false); }); closeSheet(); }
+function renderCards(){ const tl=timeline(STATE.day); const c=$('#cards'); c.innerHTML=tl.stops.map(s=>{ const th=s.thumb?`<img src="${s.thumb}" alt="">`:(s.kind==='leg'?'<span style="font-size:26px">🚄</span>':''); const meta=s.kind==='leg'?`${dur(s.travel)} · ¥${(s.fare||0).toLocaleString()}`:`${fmt(s.arrive)}–${fmt(s.depart)}`; return `<button class="card ${s.status||'ok'}${s.kind==='leg'?' leg':''}" data-id="${s.id}"><span class="n">${s.kind==='leg'?'↔':s.n}</span><div class="th">${th}</div><div><div class="t">${s.title}</div><div class="m">${meta}${s.wait?` <span class="st check">대기 ${s.wait}분</span>`:''}</div></div></button>`; }).join(''); c.querySelectorAll('.card').forEach(b=>b.onclick=()=>select(b.dataset.id,true)); $('#summary').innerHTML=`<span>도보 <b>${(tl.walkM/1000).toFixed(1)} km</b> · <b>${dur(tl.walkT)}</b></span>${tl.transitT?`<span>철도·지하철 <b>${dur(tl.transitT)}</b></span>`:''}<span>체류 <b>${dur(tl.stayT)}</b></span><span>${fmt(toMin(STATE.start[STATE.day]))} → <b>${fmt(tl.end)}</b></span>`; }
+function select(id, openDetail){ const tl=timeline(STATE.day); const s=tl.stops.find(x=>x.id===id); if(!s) return; STATE.sel=id; $$('.card').forEach(c=>c.classList.toggle('sel',c.dataset.id===id)); const card=$(`.card[data-id="${id}"]`); if(card) card.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'}); const go=()=>{ $$('.pin').forEach(p=>p.classList.toggle('sel',p.dataset.id===id)); routes.querySelectorAll('.seg').forEach(g=>g.classList.toggle('hot',g.dataset.a===id||g.dataset.b===id)); const sc=SCENES[s.scene]; const [x,y]=P(sc,s.at); centerOn(x,y,Math.max(view.s,view.fitS*1.5), openDetail?0.26:0.45); updateHero(); if(openDetail) showDetail(s,tl); else closeSheet(); }; if(s.scene!==STATE.scene) loadScene(s.scene,go); else go(); }
+function showDetail(s,tl){ const p=s.p||{}; $('#dTh').src=s.thumb||''; $('#dTh').parentElement.style.visibility=s.thumb?'visible':'hidden'; $('#dTitle').textContent=s.title; $('#dSub').textContent=[p.verified_name_ja,p.verified_name_en].filter(Boolean).join(' · ')||s.sub||''; const idx=tl.stops.indexOf(s); const prev=tl.stops[idx-1]; const m=MODES[s.mode]||MODES.walk; $('#dTime').innerHTML= s.kind==='leg' ? `${fmt(s.arrive)} 출발 · ${dur(s.travel)} 소요` : `${fmt(s.arrive)} 도착 · ${dur(s.dur)} 체류 · ${fmt(s.depart)} 출발${s.wait?` <span class="st check">개점 대기 ${s.wait}분</span>`:''}`;
+  let b='';
+  if(idx>0&&s.mode!=='stay') b+=`<div class="box"><h4>이동 · 이전 장소에서</h4><div class="mode"><i style="border-color:${m.c==='#f2eee6'?'#9a958a':m.c};${m.d?'border-style:dashed':''}"></i>${m.n} ${dur(s.travel||0)}${s.dist?` · 약 ${s.dist>=1000?(s.dist/1000).toFixed(1)+' km':s.dist+' m'}`:''}${s.fare?` · ¥${s.fare.toLocaleString()}`:''}</div>${s.legNote?`<div>${s.legNote}</div>`:''}</div>`;
+  const st=s.status||'ok'; const stLabel={ok:'검증됨',check:'당일 확인 필요',unknown:'미확정 · 메모 참고',leg:'교통'}[st];
+  b+=`<div class="box ${st==='ok'?'ok':st==='check'?'warn':'grey'}"><h4>상태 <span class="st ${st}">${stLabel}</span></h4>${p.status_note?`<div>${p.status_note}</div>`:''}${s.note?`<div>${s.note}</div>`:''}${p.check_realtime&&p.check_realtime!=='-'?`<div><b>확인 방법:</b> ${p.check_realtime}</div>`:''}</div>`;
+  if(s.kind!=='leg') b+=`<dl class="kv">${p.address?`<dt>주소</dt><dd>${p.address}</dd>`:''}${p.hours?`<dt>영업시간</dt><dd>${p.hours}</dd>`:''}${p.category?`<dt>분류</dt><dd>${p.category}</dd>`:''}${p.lat?`<dt>좌표</dt><dd class="mono">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)} <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener" style="color:var(--teal)">지도 열기</a></dd>`:''}</dl>`;
+  if(p.alternatives&&p.alternatives.length) b+=`<div class="box"><h4>대체 후보</h4><ul style="margin:0;padding-left:18px">${p.alternatives.map(a=>`<li>${a}</li>`).join('')}</ul></div>`;
+  if(p.sources&&p.sources.length) b+=`<div class="box"><h4>출처 · 확인 ${META.checked_at}</h4>${p.sources.slice(0,3).map(u=>`<a href="${u}" target="_blank" rel="noopener">${u.replace(/^https?:\/\//,'').slice(0,60)}</a>`).join('<br>')}<div style="font-size:11px;color:var(--muted)">확신도: ${p.confidence||'-'}</div></div>`;
+  b+=`<div class="nav">${idx>0?`<button data-nav="${tl.stops[idx-1].id}">← 이전</button>`:''}<button class="go" data-done="${s.id}">${STATE.done[s.id]?'✓ 방문 완료 취소':'방문 완료'}</button>${tl.stops[idx+1]?`<button data-nav="${tl.stops[idx+1].id}">다음 →</button>`:''}</div>`;
+  $('#dBody').innerHTML=b; $('#dBody').querySelectorAll('[data-nav]').forEach(x=>x.onclick=()=>select(x.dataset.nav,true)); const dn=$('#dBody [data-done]'); if(dn) dn.onclick=()=>{ STATE.done[s.id]=!STATE.done[s.id]; save(); $$('.pin').forEach(pn=>pn.classList.toggle('done',!!STATE.done[pn.dataset.id])); dn.textContent=STATE.done[s.id]?'✓ 방문 완료 취소':'방문 완료'; };
+  $('#sheet').classList.add('open'); }
+function closeSheet(){ $('#sheet').classList.remove('open'); }
+$('#dClose').onclick=closeSheet;
+$$('#dayTabs button').forEach(b=>b.onclick=()=>setDay(+b.dataset.day));
+// sheet drag-to-close
+(()=>{ const sh=$('#sheet'); let y0=null; sh.addEventListener('pointerdown',e=>{ if(e.target.closest('.bd')&&$('#dBody').scrollTop>0) return; y0=e.clientY; }); sh.addEventListener('pointermove',e=>{ if(y0==null) return; const dy=e.clientY-y0; if(dy>0) sh.style.transform=`translateY(${dy}px)`; }); const up=e=>{ if(y0==null) return; const dy=e.clientY-y0; sh.style.transform=''; if(dy>90) closeSheet(); y0=null; }; sh.addEventListener('pointerup',up); sh.addEventListener('pointercancel',up); })();
+function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2200); }
+
+// ---------- screens ----------
+$$('.screen [data-close]').forEach(b=>b.onclick=()=>b.closest('.screen').classList.remove('open'));
+$('#btnNotes').onclick=()=>{ renderNotes(); $('#scrNotes').classList.add('open'); };
+$('#btnSources').onclick=()=>{ renderSources(); $('#scrSources').classList.add('open'); };
+$('#btnSettings').onclick=()=>{ renderSettings(); $('#scrSettings').classList.add('open'); };
+function renderNotes(){ const unk=NOTES.map(n=>`<div class="item"><div class="t">${n.t}</div><div class="s">${n.s}</div>${n.opts?`<ul>${n.opts.map(o=>`<li>${o}</li>`).join('')}</ul>`:''}${n.how?`<div class="s"><b>확인 방법:</b> ${n.how}</div>`:''}</div>`).join(''); const chk=Object.values(PLACES).filter(p=>p.check_realtime&&p.check_realtime!=='-').map(p=>`<div class="item"><div class="t">${p.user_name}</div><div class="s">${p.check_realtime}</div></div>`).join(''); $('#notesBody').innerHTML=`<div class="s" style="color:var(--muted)">지인에게 받은 일정이라 확정하지 못한 항목입니다. 지도에는 회색 물음표 핀으로 표시됩니다.</div>${unk}<h3>출발 전 실시간 확인 목록</h3>${chk}`; }
+function renderSources(){ $('#sourcesBody').innerHTML=`<div class="item"><div class="t">확인 시점 ${META.checked_at}</div><div class="s">${META.coordinate_note}</div><div class="s">출처가 없거나 확인되지 않은 값은 unverified로 표시했고, 영업시간은 공식 사이트·타베로그·구글맵을 교차 확인했습니다. 임시 휴무·행사는 당일 재확인이 필요합니다.</div></div>`+Object.values(PLACES).map(p=>`<div class="item"><div class="t">${p.user_name} <span class="st ${p.target_status==='open'?'ok':'check'}">${p.confidence}</span></div><div class="s">${p.verified_name_ja||''}</div>${(p.sources||[]).map(u=>`<a href="${u}" target="_blank" rel="noopener">${u}</a>`).join('<br>')}</div>`).join(''); }
+function renderSettings(){ $('#settingsBody').innerHTML=`<label class="f">Day 1 시작 시각 (텐진 도착·짐 보관)<input type="time" id="st1" value="${STATE.start[1]}"></label><label class="f">Day 2 시작 시각 (晴レ吉 체크아웃)<input type="time" id="st2" value="${STATE.start[2]}"></label><label class="tog"><span>거리 애니메이션 (사람·차량·열차)</span><input type="checkbox" id="amb" ${STATE.ambient?'checked':''}></label><div class="item"><div class="s">시작 시각을 바꾸면 전체 일정이 함께 밀립니다. 개점 시간이 정해진 곳(효탄스시 11:30, 포켓몬센터 10:00, 블루윙 16:00, 미츠바치 17:30)은 도착이 빠르면 "대기"로 표시됩니다.</div></div><div class="item"><div class="s">저사양 기기·모션 최소화 설정에서는 장식 애니메이션이 자동으로 줄어듭니다. (현재: ${RM?'모션 최소화':LOWPERF?'저사양 모드':'일반'})</div></div>`; const re=()=>{ renderCards(); drawScene(STATE.scene); if(STATE.sel) select(STATE.sel,false); }; $('#st1').onchange=e=>{STATE.start[1]=e.target.value||'11:00';save();re();}; $('#st2').onchange=e=>{STATE.start[2]=e.target.value||'08:45';save();re();}; $('#amb').onchange=e=>{STATE.ambient=e.target.checked;save();drawScene(STATE.scene);}; }
+// legend
+$('#legend').innerHTML=['walk','subway','shinkansen','train'].map(k=>`<span><i style="border-color:${MODES[k].c==='#f2eee6'?'#9a958a':MODES[k].c};${MODES[k].d?'border-style:dashed':''}"></i>${MODES[k].n}</span>`).join('');
+// boot
+setDay(1);
+})();
+</script>
+</body>
+</html>
