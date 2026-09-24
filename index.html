@@ -122,7 +122,7 @@
 <body>
 <div id="top">
   <div class="row">
-    <div class="brand">후쿠오카 · 기타큐슈 <small>2026.09.27–29</small></div>
+    <div class="brand">후쿠오카 · 기타큐슈 <small>2026.09.27–29 · v202609242249</small></div>
     <button class="iconbtn" id="btnNotes">메모</button><button class="iconbtn" id="btnSources">출처</button><button class="iconbtn" id="btnSettings">설정</button>
   </div>
   <div class="seg" role="tablist" id="dayTabs"></div>
@@ -149,10 +149,10 @@
 <div class="screen" id="scrSources"><header><h2>데이터 출처 · 확인 시점</h2><button class="iconbtn" data-close>닫기</button></header><div class="bd" id="sourcesBody"></div></div>
 <div class="screen" id="scrSettings"><header><h2>설정</h2><button class="iconbtn" data-close>닫기</button></header><div class="bd" id="settingsBody"></div></div>
 
-<script src="data.js?v=202609242106"></script>
+<script src="data.js?v=202609242249"></script>
 <script type="module">
 import * as THREE from 'three';
-import { World } from './world.js?v=202609242106';
+import { World } from './world.js?v=202609242249';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const MODES={walk:{c:'#ffd93a',n:'도보',hex:0xd8391c,dash:true},subway:{c:'#2e3d5c',n:'지하철',hex:0x2e3d5c,dash:true},shinkansen:{c:'#3b5bdb',n:'신칸센',hex:0x3b5bdb},train:{c:'#2f7f86',n:'JR 재래선',hex:0x2f7f86},bus:{c:'#b8860b',n:'버스',hex:0xb8860b},taxi:{c:'#e0b100',n:'택시',hex:0xe0b100},stay:{c:'transparent',n:''}};
 const CAT={food:0xe36b4f,shop:0x3c9a8f,gacha:0x9b6bd6,camera:0x3f5a9c,hotel:0xe0524a,transit:0x4a78d0,cafe:0xa86b3c,sight:0xe0a83a,unknown:0x8f8a80};
