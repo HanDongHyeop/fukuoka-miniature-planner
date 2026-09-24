@@ -25,8 +25,9 @@
   .brand{font-weight:700;font-size:15px;letter-spacing:-.01em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .brand small{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted);margin-left:6px}
   .iconbtn{min-width:44px;height:44px;display:grid;place-items:center;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:12px;font-weight:500;padding:0 10px}
-  .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
-  .seg button{flex:1;min-height:38px;border-radius:9px;font-weight:500;color:var(--muted);padding:0 10px;white-space:nowrap}
+  .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:0 0 auto;min-height:38px;border-radius:9px;font-weight:500;color:var(--muted);padding:0 12px;white-space:nowrap}
   .seg button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
   .seg button b{font-family:var(--mono);font-weight:500;font-size:11px;margin-right:4px}
   #regions{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -12px;padding:0 12px}
@@ -109,7 +110,7 @@
   @media (min-width:760px) and (orientation:landscape){
     body{display:grid;grid-template-columns:1fr 360px;grid-template-rows:auto 1fr}
     #stage{grid-column:1;grid-row:1/3} #top{grid-column:2;grid-row:1;border-left:1px solid var(--line);padding-top:14px}
-    .seg button{white-space:normal;line-height:1.2;font-size:13px}
+    .seg button{font-size:13px}
     #bottom{grid-column:2;grid-row:2;border-left:1px solid var(--line);border-top:0;min-height:0;grid-template-rows:auto 1fr}
     #summary{flex-wrap:wrap;white-space:normal;row-gap:2px}
     #cards{flex-direction:column;overflow-y:auto;overflow-x:hidden;scroll-snap-type:none;padding:2px 12px 12px;min-height:0} .card{width:auto}
@@ -235,7 +236,7 @@ $('#lbl').onclick=()=>{STATE.labels=!STATE.labels;stage.classList.toggle('labels
 function fitStops(anim){ if(!pinObjs.length)return; let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9; for(const p of pinObjs){x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);z0=Math.min(z0,p.z);z1=Math.max(z1,p.z);} const span=Math.max(x1-x0,(z1-z0)*1.4,160); W.focus((x0+x1)/2,(z0+z1)/2,Math.min(1800,span*1.5),anim); }
 
 // ---------- UI ----------
-function setDay(d){ STATE.day=d; STATE.sel=null; STATE.route=null; STATE.heroOn=null; STATE.heroAt=DAYS[d].stops[0].id; W.hero=null; $$('#dayTabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.day==d)); const reg=$('#regions'); const scenes=DAYS[d].scenes; if(scenes.length>1){reg.hidden=false;reg.innerHTML=scenes.map(s=>`<button role="tab" data-scene="${s}">${SCENES[s].label}</button>`).join('');reg.querySelectorAll('button').forEach(b=>b.onclick=async()=>{await showScene(b.dataset.scene);const first=pinObjs[0];if(first)select(first.s.id,false);else fitStops(true);});}else{reg.hidden=true;reg.innerHTML='';} closeSheet(); STATE.scene=null; showScene(scenes[0]).then(()=>select(timeline(d).stops[0].id,false)); }
+function setDay(d){ STATE.day=d; STATE.sel=null; STATE.route=null; STATE.heroOn=null; STATE.heroAt=DAYS[d].stops[0].id; W.hero=null; $$('#dayTabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.day==d)); const tb=$(`#dayTabs button[data-day="${d}"]`); if(tb) tb.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'}); const reg=$('#regions'); const scenes=DAYS[d].scenes; if(scenes.length>1){reg.hidden=false;reg.innerHTML=scenes.map(s=>`<button role="tab" data-scene="${s}">${SCENES[s].label}</button>`).join('');reg.querySelectorAll('button').forEach(b=>b.onclick=async()=>{await showScene(b.dataset.scene);const first=pinObjs[0];if(first)select(first.s.id,false);else fitStops(true);});}else{reg.hidden=true;reg.innerHTML='';} closeSheet(); STATE.scene=null; showScene(scenes[0]).then(()=>select(timeline(d).stops[0].id,false)); }
 function renderCards(){ const tl=timeline(STATE.day); const c=$('#cards'); c.innerHTML=tl.stops.map(s=>{const th=s.thumb?`<img src="${s.thumb}" alt="">`:(s.kind==='leg'?'<span style="font-size:26px">🚄</span>':''); const meta=s.kind==='leg'?`${dur(s.travel)} · ¥${(s.fare||0).toLocaleString()}`:`${fmt(s.arrive)}–${fmt(s.depart)}`; return `<button class="card ${s.status||'ok'}${s.kind==='leg'?' leg':''}${s.id===STATE.sel?' sel':''}" data-id="${s.id}"><span class="n">${s.kind==='leg'?'↔':s.n}</span><div class="th">${th}</div><div><div class="t">${s.title}</div><div class="m">${meta}${s.wait?` <span class="st check">대기 ${s.wait}분</span>`:''}</div></div></button>`;}).join(''); c.querySelectorAll('.card').forEach(b=>b.onclick=()=>select(b.dataset.id,true)); $('#summary').innerHTML=`<span>도보 <b>${(tl.walkM/1000).toFixed(1)} km</b> · <b>${dur(tl.walkT)}</b></span>${tl.transitT?`<span>철도·지하철 <b>${dur(tl.transitT)}</b></span>`:''}<span>체류 <b>${dur(tl.stayT)}</b></span><span>${fmt(toMin(STATE.start[STATE.day]))} → <b>${fmt(tl.end)}</b></span>`; }
 async function select(id,openDetail){ const tl=timeline(STATE.day); const s=tl.stops.find(x=>x.id===id); if(!s)return; STATE.sel=id; $$('.card').forEach(c=>c.classList.toggle('sel',c.dataset.id===id)); const card=$(`.card[data-id="${id}"]`); if(card)card.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
   const A=await showScene(s.scene); $$('.pin').forEach(p=>p.classList.toggle('sel',p.dataset.id===id));
