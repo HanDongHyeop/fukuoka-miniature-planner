@@ -156,7 +156,7 @@
 import * as THREE from 'three';
 import { World } from './world.js';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const MODES={walk:{c:'#ff7a3d',n:'도보',hex:0xff7a3d,dash:true},subway:{c:'#2e3d5c',n:'지하철',hex:0x2e3d5c,dash:true},shinkansen:{c:'#3b5bdb',n:'신칸센',hex:0x3b5bdb},train:{c:'#2f7f86',n:'JR 재래선',hex:0x2f7f86},bus:{c:'#b8860b',n:'버스',hex:0xb8860b},taxi:{c:'#e0b100',n:'택시',hex:0xe0b100},stay:{c:'transparent',n:''}};
+const MODES={walk:{c:'#ffd93a',n:'도보',hex:0xd8391c,dash:true},subway:{c:'#2e3d5c',n:'지하철',hex:0x2e3d5c,dash:true},shinkansen:{c:'#3b5bdb',n:'신칸센',hex:0x3b5bdb},train:{c:'#2f7f86',n:'JR 재래선',hex:0x2f7f86},bus:{c:'#b8860b',n:'버스',hex:0xb8860b},taxi:{c:'#e0b100',n:'택시',hex:0xe0b100},stay:{c:'transparent',n:''}};
 const CAT={food:0xe36b4f,shop:0x3c9a8f,gacha:0x9b6bd6,camera:0x3f5a9c,hotel:0xe0524a,transit:0x4a78d0,cafe:0xa86b3c,sight:0xe0a83a,unknown:0x8f8a80};
 const STATE={day:1,scene:null,sel:null,labels:false,start:{1:'11:00',2:'08:45'},done:{},ambient:true,heroAt:null,route:null,heroOn:null};
 try{const s=JSON.parse(localStorage.getItem('fk_state')||'{}');Object.assign(STATE.start,s.start||{});Object.assign(STATE.done,s.done||{});if(s.ambient===false)STATE.ambient=false;}catch(e){}
@@ -263,10 +263,10 @@ async function goRoute(fromId,toId){ const tl=timeline(STATE.day); const a=tl.st
   if(np&&np.dist<15&&(!cur||samePair(cur.meta))){ startWalk(np.d); return; }   // 같은 경로 위: 이어서 걷기
   if(cur&&cur.meta&&cur.meta.to===fromId&&cur.meta.from!==toId){ const prevDone=cur.onDone; cur.onDone=()=>{ if(prevDone)prevDone(); startWalk(0); }; STATE.route=null; selectTo(); toast(`${a.n}번 도착 후 ${b.n}번으로 출발합니다`); return; } // 출발지로 가는 중이면 도착 후 이어서
   if(cur&&cur.meta&&cur.meta.from===fromId){                           // 출발지에서 다른 곳으로 가던 중 → 출발지로 되돌아온 뒤 출발
-    const back=World.subPath(cur.pts,cur.d,0); W.clearRoutes(); W.addRoute(back,0x9a958a,true,true); STATE.route=null; selectTo(); W.focus(hp.x,hp.z,Math.min(W.viewW,300),true); toast(`${a.n}번으로 되돌아간 뒤 출발합니다`);
+    const back=World.subPath(cur.pts,cur.d,0); W.clearRoutes(); W.addRoute(back,0x6b6b72,true,true); STATE.route=null; selectTo(); W.focus(hp.x,hp.z,Math.min(W.viewW,300),true); toast(`${a.n}번으로 되돌아간 뒤 출발합니다`);
     W.heroWalk(back,()=>startWalk(0),0,{from:cur.meta.to,to:fromId}); return; }
   if(!cur&&on&&on.from===fromId&&hp){                                   // 경로 위에 멈춰 있던 경우(취소/드래그) → 출발지로 되돌아온 뒤 출발
-    const prevR=routeFor(A,tl.stops.find(x=>x.id===on.from),tl.stops.find(x=>x.id===on.to)); const npo=World.nearestOnPath(prevR.pts,hp.x,-hp.z); if(npo.dist<15&&npo.d>5){ const back=World.subPath(prevR.pts,npo.d,0); W.clearRoutes(); W.addRoute(back,0x9a958a,true,true); STATE.route=null; selectTo(); toast(`${a.n}번으로 되돌아간 뒤 출발합니다`); W.heroWalk(back,()=>startWalk(0),0,{from:on.to,to:fromId}); return; } }
+    const prevR=routeFor(A,tl.stops.find(x=>x.id===on.from),tl.stops.find(x=>x.id===on.to)); const npo=World.nearestOnPath(prevR.pts,hp.x,-hp.z); if(npo.dist<15&&npo.d>5){ const back=World.subPath(prevR.pts,npo.d,0); W.clearRoutes(); W.addRoute(back,0x6b6b72,true,true); STATE.route=null; selectTo(); toast(`${a.n}번으로 되돌아간 뒤 출발합니다`); W.heroWalk(back,()=>startWalk(0),0,{from:on.to,to:fromId}); return; } }
   W.setHeroNear(A,pa.x,pa.z); startWalk(0);
 }
 function cancelRoute(){ STATE.route=null; W.clearRoutes(); W.heroCancel(); const tl=timeline(STATE.day); const hp=W.hero&&W.hero.position; if(hp&&STATE.heroOn){ /* keep heroOn: hero rests on that route */ } toast('경로를 취소했습니다. 캐릭터는 그 자리에서 대기합니다'); if(STATE.sel) select(STATE.sel,true); }

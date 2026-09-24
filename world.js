@@ -201,7 +201,7 @@ export class World {
   _dashTex() { if (this._dash) return this._dash; const c = document.createElement('canvas'); c.width = 64; c.height = 16; const x = c.getContext('2d'); x.clearRect(0, 0, 64, 16); x.fillStyle = '#fff'; x.beginPath(); x.moveTo(6, 1); x.lineTo(30, 8); x.lineTo(6, 15); x.lineTo(18, 8); x.closePath(); x.fill(); x.fillRect(30, 5, 14, 6); const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.magFilter = THREE.LinearFilter; this._dash = t; return t; }
   addRoute(pts, color, dashed, hot) {
     const g = World.ribbon(pts, 2.6, 0.42, undefined, 5.2); if (!g) return null; const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: hot ? 0.98 : 0.55, depthWrite: false, depthTest: !hot, polygonOffset: true, polygonOffsetFactor: -2 }); if (dashed) { mat.map = this._dashTex().clone(); mat.map.needsUpdate = true; mat.alphaTest = 0.4; }
-    const under = new THREE.Mesh(World.ribbon(pts, 3.4, 0.4, undefined, 4.5), new THREE.MeshBasicMaterial({ color: 0x1d1a16, transparent: true, opacity: hot ? 0.35 : 0.15, depthWrite: false, depthTest: !hot, polygonOffset: true, polygonOffsetFactor: -1 }));
+    const under = new THREE.Mesh(World.ribbon(pts, 3.6, 0.4, undefined, 4.5), new THREE.MeshBasicMaterial({ color: 0xffd93a, transparent: true, opacity: hot ? 0.96 : 0.55, depthWrite: false, depthTest: !hot, polygonOffset: true, polygonOffsetFactor: -1 }));
     const m = new THREE.Mesh(g, mat); m.renderOrder = 5; under.renderOrder = 4; this.dyn.add(under, m); this.routeMeshes.push({ m, under, hot, dashed }); return m;
   }
   clearRoutes() { for (const rm of this.routeMeshes) { this.dyn.remove(rm.m); this.dyn.remove(rm.under); rm.m.geometry.dispose(); rm.under.geometry.dispose(); } this.routeMeshes = []; }
