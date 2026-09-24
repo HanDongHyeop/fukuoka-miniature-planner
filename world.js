@@ -2,6 +2,7 @@
 // 사람·차량·열차를 그 안에서 움직인다. (three.js ESM)
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const PAL = {
   ground: 0xdcd6c8, plaza: 0xcfc8b8, sidewalk: 0xd9d3c5, road: 0x6b6b72, roadMinor: 0x7d7c82, roadService: 0x8f8e93,
@@ -69,7 +70,7 @@ export class World {
       const u = uvLen ? dist / uvLen : 0; uv.push(u, 0, u, 1);
       if (i > 0) { const a = (i - 1) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
     }
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); const nrm = new Float32Array(pos.length); for (let i = 1; i < pos.length; i += 3) nrm[i] = 1; g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
     if (color !== undefined) { const c = new THREE.Color(color); const cols = []; for (let i = 0; i < pos.length / 3; i++) cols.push(c.r, c.g, c.b); g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); }
     return g;
   }
@@ -104,8 +105,8 @@ export class World {
       if (r.tn) continue; const y = 0.05 + (r.b || r.l > 0 ? Math.max(r.l, 1) * 5.5 : 0);
       if (r.t === 'waterway') { const g = World.ribbon(r.pts, r.w, 0.03, PAL.water); if (g) flats.push(g); continue; }
       if (r.t === 'coastline') { // sea is on the right-hand side of the way direction
-        const off = r.pts.map((p, i) => { const q = r.pts[Math.min(r.pts.length - 1, i + 1)], pr = r.pts[Math.max(0, i - 1)]; let dx = q[0] - pr[0], dy = q[1] - pr[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l; return [p[0] + dy * 300, p[1] - dx * 300]; });
-        const g = World.ribbon(off, 600, 0.03, PAL.water); if (g) flats.push(g); continue; }
+        const off = r.pts.map((p, i) => { const q = r.pts[Math.min(r.pts.length - 1, i + 1)], pr = r.pts[Math.max(0, i - 1)]; let dx = q[0] - pr[0], dy = q[1] - pr[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l; return [p[0] + dy * 75, p[1] - dx * 75]; });
+        const g = World.ribbon(off, 150, 0.03, PAL.water); if (g) flats.push(g); continue; }
       const foot = ['footway', 'pedestrian', 'path', 'steps', 'cycleway', 'corridor'].includes(r.t);
       const major = ['primary', 'secondary', 'trunk', 'motorway', 'primary_link', 'secondary_link', 'trunk_link', 'motorway_link'].includes(r.t);
       const col = foot ? PAL.sidewalk : major ? PAL.road : (r.t === 'service' ? PAL.roadService : PAL.roadMinor);
@@ -122,7 +123,7 @@ export class World {
       else { const g = World.ribbon(r.pts, 4.2, el, PAL.ballast); if (g) ribbons.push(g); [-0.75, 0.75].forEach(o => { const rp = r.pts.map((p, i) => { const q = r.pts[Math.min(r.pts.length - 1, i + 1)], pr = r.pts[Math.max(0, i - 1)]; let dx = q[0] - pr[0], dy = q[1] - pr[1]; const l = Math.hypot(dx, dy) || 1; return [p[0] - dy / l * o, p[1] + dx / l * o]; }); const rg = World.ribbon(rp, 0.3, el + 0.12, PAL.rail); if (rg) ribbons.push(rg); }); if (el > 1) { const under = World.ribbon(r.pts, 5, el - 1.4, 0x9a958c); if (under) ribbons.push(under); } }
       A.railLines.push({ pts: r.pts, y: el + 0.3, mono: r.t === 'monorail' });
     }
-    const flatMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    const flatMat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
     if (flats.length) A.group.add(new THREE.Mesh(mergeGeometries(flats, false), flatMat));
     if (ribbons.length) { const m = new THREE.Mesh(mergeGeometries(ribbons, false), flatMat); m.renderOrder = 1; A.group.add(m); }
     // buildings
@@ -205,6 +206,23 @@ export class World {
   }
   addRing(x, z, r, color) { const ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.86, r, 48), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.3, z); ring.renderOrder = 3; this.dyn.add(ring); this.rings.push({ ring, r }); return ring; }
   addBeacon(x, z, h, color) { const g = new THREE.CylinderGeometry(0.9, 0.9, 40, 12, 1, true); const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide })); m.position.set(x, h + 20, z); m.renderOrder = 2; this.dyn.add(m); return m; }
+  async placeLandmark(A, lm) { // lm: {glb, lat, lng, maxH}
+    const q = A.toXZ(lm.lat, lm.lng); const b = this.findBuilding(A, q.x, -q.z);
+    const loader = this._gltf ||= new GLTFLoader();
+    let gl; try { gl = await new Promise((res, rej) => loader.load(lm.glb, res, undefined, rej)); } catch (e) { console.warn('landmark load failed', lm.glb); return null; }
+    const obj = gl.scene; obj.traverse(o => { if (o.isMesh && o.material) { const map = o.material.map || null; if (map) map.colorSpace = THREE.SRGBColorSpace; o.material = new THREE.MeshLambertMaterial({ map, color: map ? 0xffffff : 0xd9d3c6, emissive: 0x3a3630, emissiveIntensity: map ? 0.35 : 0 }); } });
+    const box = new THREE.Box3().setFromObject(obj); const size = box.getSize(new THREE.Vector3());
+    let cx = q.x, cz = q.z, fw = 26, fd = 26, ang = 0;
+    if (b) { const bb = b._bbox; cx = (bb[0] + bb[2]) / 2; cz = -(bb[1] + bb[3]) / 2; fw = bb[2] - bb[0]; fd = bb[3] - bb[1]; ang = World.mainAngle(b.pts);
+      const pos = A.bldGeo.attributes.position; for (let k = b._start; k < b._start + b._count; k++) { if (pos.getY(k) > 0.4) pos.setY(k, 0.4); } pos.needsUpdate = true; A.bldGeo.computeBoundingSphere(); b._collapsed = true; b._plinth = true; }
+    const long = Math.max(fw, fd), short = Math.min(fw, fd); const mlong = Math.max(size.x, size.z), mshort = Math.min(size.x, size.z);
+    let sc = Math.min(long / mlong, short / mshort) * 1.05; if (lm.maxH && size.y * sc > lm.maxH) sc = lm.maxH / size.y; if (lm.scale) sc *= lm.scale;
+    obj.scale.setScalar(sc);
+    const rotY = ((size.x >= size.z) === (fw >= fd)) ? ang : ang + Math.PI / 2; obj.rotation.y = rotY + (lm.rot || 0);
+    const box2 = new THREE.Box3().setFromObject(obj); const c2 = box2.getCenter(new THREE.Vector3());
+    obj.position.set(cx - c2.x, 0.4 - box2.min.y, cz - c2.z); A.group.add(obj); lm._obj = obj; lm._h = box2.max.y - box2.min.y + 0.4; return obj;
+  }
+  static mainAngle(pts) { let best = 0, bl = -1; for (let i = 1; i < pts.length; i++) { const dx = pts[i][0] - pts[i - 1][0], dy = pts[i][1] - pts[i - 1][1]; const l = dx * dx + dy * dy; if (l > bl) { bl = l; best = Math.atan2(-dy, dx); } } return -best; }
   findBuilding(A, x, y) { let best = null, bd = 1e9; for (const b of A.bld) { const bb = b._bbox; if (x >= bb[0] - 2 && x <= bb[2] + 2 && y >= bb[1] - 2 && y <= bb[3] + 2 && World.inPoly(x, y, b.pts)) return b; const cx = (bb[0] + bb[2]) / 2, cy = (bb[1] + bb[3]) / 2; const d = Math.hypot(cx - x, cy - y); if (d < bd) { bd = d; best = b; } } return bd < 28 ? best : null; }
 
   // ---------- characters ----------

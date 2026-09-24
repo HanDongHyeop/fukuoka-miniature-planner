@@ -174,6 +174,7 @@ async function showScene(name){
   $('#loading').hidden=false; $('#loadLbl').textContent=SCENES[name].label;
   await new Promise(r=>setTimeout(r,30));
   const A = name==='wide' ? await showWide() : await W.show(name,'data/osm_'+name+'.json');
+  if(!A.wide && !A._lmLoaded){ A._lmLoaded=true; const lms=(typeof LANDMARKS!=='undefined'?LANDMARKS:[]).filter(l=>l.scene===name); await Promise.all(lms.map(l=>W.placeLandmark(A,l))); }
   STATE.scene=name; $$('#regions button').forEach(b=>b.setAttribute('aria-selected',b.dataset.scene===name));
   buildSceneOverlay(A); $('#loading').hidden=true; return A;
 }
@@ -209,8 +210,8 @@ function buildSceneOverlay(A){
   const tl=timeline(STATE.day); const stops=tl.stops.filter(s=>s.scene===A.name);
   pinsEl.innerHTML=''; pinObjs=[]; const seen=new Set(); const dupCount={}, dupIdx={}; stops.forEach(s=>{dupCount[s.place]=(dupCount[s.place]||0)+1;});
   stops.forEach(s=>{ const q=stopXZ(A,s); let h=A.wide?12:3;
-    if(!A.wide){ const b=W.findBuilding(A,q.x,-q.z); const col=CAT[catOf(s)]||CAT.unknown; if(b) h=b._h;
-      if(!seen.has(s.place)){ seen.add(s.place); if(b){ if(!b._lm){ W.recolorBuilding(A,b,col); b._lm=true; } const bb=b._bbox; const r=Math.max(9,Math.hypot(bb[2]-bb[0],bb[3]-bb[1])/2+4); W.addRing((bb[0]+bb[2])/2,-(bb[1]+bb[3])/2,r,0xffffff); W.addBeacon((bb[0]+bb[2])/2,-(bb[1]+bb[3])/2,b._h,col); } else { W.addRing(q.x,q.z,12,0xffffff); W.addBeacon(q.x,q.z,4,col); } } }
+    if(!A.wide){ const b=W.findBuilding(A,q.x,-q.z); const col=CAT[catOf(s)]||CAT.unknown; if(b) h=b._h; const lmh=(typeof LANDMARKS!=='undefined'?LANDMARKS:[]).find(l=>l.scene===A.name&&l._h&&Math.hypot(A.toXZ(l.lat,l.lng).x-q.x,A.toXZ(l.lat,l.lng).z-q.z)<30); if(lmh) h=lmh._h;
+      if(!seen.has(s.place)){ seen.add(s.place); if(b){ if(!b._lm){ W.recolorBuilding(A,b,b._plinth?0xe9e2d2:col); b._lm=true; } const bb=b._bbox; const r=Math.max(9,Math.hypot(bb[2]-bb[0],bb[3]-bb[1])/2+4); W.addRing((bb[0]+bb[2])/2,-(bb[1]+bb[3])/2,r,0xffffff); W.addBeacon((bb[0]+bb[2])/2,-(bb[1]+bb[3])/2,b._h,col); } else { W.addRing(q.x,q.z,12,0xffffff); W.addBeacon(q.x,q.z,4,col); } } }
     const el=document.createElement('button'); el.className='pin '+(s.kind==='leg'?'leg ':'')+(s.status||'ok')+(STATE.done[s.id]?' done':'')+(s.id===STATE.sel?' sel':''); el.innerHTML=`<div class="num">${s.kind==='leg'?'🚄':s.n}</div><div class="tail"></div><div class="lbl">${s.title}</div>`; el.dataset.id=s.id; el.onclick=e=>{e.stopPropagation();if(!W.dragged)select(s.id,true);}; pinsEl.appendChild(el);
     const k=dupIdx[s.place]=(dupIdx[s.place]||0); dupIdx[s.place]++; const dx=(k-(dupCount[s.place]-1)/2)*30; pinObjs.push({el,s,x:q.x,z:q.z,h,dx}); });
   if(!A.wide){ for(let i=1;i<stops.length;i++){ const a=stops[i-1],b=stops[i]; if(a.kind==='leg'||b.kind==='leg'||b.mode!=='walk')continue; const pa=stopXZ(A,a),pb=stopXZ(A,b); const r=W.route(A,pa.x,-pa.z,pb.x,-pb.z); routeLen[a.id+'>'+b.id]=Math.round(r.len); routePts[b.id]=r.pts; const m=MODES[b.mode]||MODES.walk; const mesh=W.addRoute(r.pts,m.hex,!!m.dash,false); if(mesh) mesh._seg=[a.id,b.id]; } }
