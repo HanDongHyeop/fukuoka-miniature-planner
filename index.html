@@ -34,7 +34,7 @@
   #regions button{min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:13px;white-space:nowrap}
   #regions button[aria-selected="true"]{background:var(--teal);border-color:var(--teal);color:#fff}
   #regions[hidden]{display:none}
-  #stage{position:relative;flex:1;min-height:0;overflow:hidden;background:#e4dfd5}
+  #stage{position:relative;flex:1;min-height:0;overflow:hidden;background:#e4dfd5;touch-action:none}
   #pins{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:4}
   #stage canvas{z-index:0}
   .pin{position:absolute;left:0;top:0;transform:translate(-50%,-100%);display:grid;justify-items:center;pointer-events:auto;cursor:pointer;min-width:44px;padding:0 4px 2px;will-change:transform}
@@ -82,7 +82,7 @@
   .card.check .n{background:var(--amber)} .card.unknown .n{background:#8f8a80} .card.leg .n{border-radius:5px;background:var(--navy)}
   .st{display:inline-block;font-size:10px;padding:0 6px;border-radius:999px;line-height:16px;font-weight:500;white-space:nowrap}
   .st.ok{background:var(--teal-soft);color:var(--teal)} .st.check{background:var(--amber-soft);color:var(--amber)} .st.unknown{background:#e6e2da;color:#6f6b63} .st.leg{background:#dde3ee;color:var(--navy)}
-  #sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel2);border-radius:18px 18px 0 0;box-shadow:0 -10px 30px rgba(40,30,20,.18);z-index:8;transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.8,.2,1);max-height:60%;display:flex;flex-direction:column;padding-bottom:var(--sat-b)}
+  #sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel2);border-radius:18px 18px 0 0;box-shadow:0 -10px 30px rgba(40,30,20,.18);z-index:8;transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.8,.2,1);max-height:52%;display:flex;flex-direction:column;padding-bottom:var(--sat-b)}
   #sheet.open{transform:translateY(0)}
   #sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 4px}
   #sheet .hd{display:grid;grid-template-columns:64px 1fr auto;gap:12px;padding:6px 16px 10px;align-items:center;border-bottom:1px solid var(--line)}
@@ -135,7 +135,7 @@
   <div id="legend"></div>
   <div id="hud">
     <button id="zin" aria-label="확대">+</button><button id="zout" aria-label="축소">−</button>
-    <button id="rotL" aria-label="왼쪽으로 회전">⟲</button><button id="rotR" aria-label="오른쪽으로 회전">⟳</button>
+    <button id="rot" aria-label="20도 회전">↻</button>
     <button id="fit" aria-label="일정 전체 보기">⤢</button><button id="lbl" aria-label="이름 표시">Aa</button>
   </div>
   <div id="loading"><div><div class="spin"></div><span>브릭 도시를 짓는 중… <b id="loadLbl"></b></span></div></div>
@@ -156,9 +156,9 @@
 import * as THREE from 'three';
 import { World } from './world.js';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const MODES={walk:{c:'#f7f3ea',n:'도보',hex:0xf7f3ea,dash:true},subway:{c:'#2e3d5c',n:'지하철',hex:0x2e3d5c,dash:true},shinkansen:{c:'#3b5bdb',n:'신칸센',hex:0x3b5bdb},train:{c:'#2f7f86',n:'JR 재래선',hex:0x2f7f86},bus:{c:'#b8860b',n:'버스',hex:0xb8860b},taxi:{c:'#e0b100',n:'택시',hex:0xe0b100},stay:{c:'transparent',n:''}};
+const MODES={walk:{c:'#ff7a3d',n:'도보',hex:0xff7a3d,dash:true},subway:{c:'#2e3d5c',n:'지하철',hex:0x2e3d5c,dash:true},shinkansen:{c:'#3b5bdb',n:'신칸센',hex:0x3b5bdb},train:{c:'#2f7f86',n:'JR 재래선',hex:0x2f7f86},bus:{c:'#b8860b',n:'버스',hex:0xb8860b},taxi:{c:'#e0b100',n:'택시',hex:0xe0b100},stay:{c:'transparent',n:''}};
 const CAT={food:0xe36b4f,shop:0x3c9a8f,gacha:0x9b6bd6,camera:0x3f5a9c,hotel:0xe0524a,transit:0x4a78d0,cafe:0xa86b3c,sight:0xe0a83a,unknown:0x8f8a80};
-const STATE={day:1,scene:null,sel:null,labels:false,start:{1:'11:00',2:'08:45'},done:{},ambient:true};
+const STATE={day:1,scene:null,sel:null,labels:false,start:{1:'11:00',2:'08:45'},done:{},ambient:true,heroAt:null,route:null};
 try{const s=JSON.parse(localStorage.getItem('fk_state')||'{}');Object.assign(STATE.start,s.start||{});Object.assign(STATE.done,s.done||{});if(s.ambient===false)STATE.ambient=false;}catch(e){}
 const save=()=>{try{localStorage.setItem('fk_state',JSON.stringify({start:STATE.start,done:STATE.done,ambient:STATE.ambient}));}catch(e){}};
 const toMin=t=>{const[h,m]=t.split(':').map(Number);return h*60+m;}, fmt=m=>{m=Math.round(m);return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}, dur=m=>m>=60?(Math.floor(m/60)+'시간'+(m%60?' '+m%60+'분':'')):m+'분';
@@ -168,7 +168,8 @@ function timeline(day){const stops=DAYS[day].stops.map(s=>Object.assign({},s));l
 
 // ---------- world ----------
 const stage=$('#stage'); const W=new World(stage); window.W=W; W.ambient=STATE.ambient&&!W.reduced;
-const pinsEl=$('#pins'); let pinObjs=[]; let heroPin=null; const routePts={};
+const pinsEl=$('#pins'); let pinObjs=[]; let heroPin=null; const routeCache={};
+function routeFor(A,a,b){ const k=a.id+'>'+b.id; if(routeCache[k]) return routeCache[k]; const pa=stopXZ(A,a),pb=stopXZ(A,b); const r=W.route(A,pa.x,-pa.z,pb.x,-pb.z); routeLen[k]=Math.round(r.len); routeCache[k]=r; return r; }
 async function showScene(name){
   if(STATE.scene===name&&W.cur&&W.cur.name===name) return W.cur;
   $('#loading').hidden=false; $('#loadLbl').textContent=SCENES[name].label;
@@ -214,8 +215,11 @@ function buildSceneOverlay(A){
       if(!seen.has(s.place)){ seen.add(s.place); if(b){ if(!b._lm){ W.recolorBuilding(A,b,b._plinth?0xe9e2d2:col); b._lm=true; } const bb=b._bbox; const r=Math.max(9,Math.hypot(bb[2]-bb[0],bb[3]-bb[1])/2+4); W.addRing((bb[0]+bb[2])/2,-(bb[1]+bb[3])/2,r,0xffffff); W.addBeacon((bb[0]+bb[2])/2,-(bb[1]+bb[3])/2,b._h,col); } else { W.addRing(q.x,q.z,12,0xffffff); W.addBeacon(q.x,q.z,4,col); } } }
     const el=document.createElement('button'); el.className='pin '+(s.kind==='leg'?'leg ':'')+(s.status||'ok')+(STATE.done[s.id]?' done':'')+(s.id===STATE.sel?' sel':''); el.innerHTML=`<div class="num">${s.kind==='leg'?'🚄':s.n}</div><div class="tail"></div><div class="lbl">${s.title}</div>`; el.dataset.id=s.id; el.onclick=e=>{e.stopPropagation();if(!W.dragged)select(s.id,true);}; pinsEl.appendChild(el);
     const k=dupIdx[s.place]=(dupIdx[s.place]||0); dupIdx[s.place]++; const dx=(k-(dupCount[s.place]-1)/2)*30; pinObjs.push({el,s,x:q.x,z:q.z,h,dx}); });
-  if(!A.wide){ for(let i=1;i<stops.length;i++){ const a=stops[i-1],b=stops[i]; if(a.kind==='leg'||b.kind==='leg'||b.mode!=='walk')continue; const pa=stopXZ(A,a),pb=stopXZ(A,b); const r=W.route(A,pa.x,-pa.z,pb.x,-pb.z); routeLen[a.id+'>'+b.id]=Math.round(r.len); routePts[b.id]=r.pts; const m=MODES[b.mode]||MODES.walk; const mesh=W.addRoute(r.pts,m.hex,!!m.dash,false); if(mesh) mesh._seg=[a.id,b.id]; } }
-  else { for(const l of A.railLines){ W.addRoute(l.pts,l.kind==='shinkansen'?0x3b5bdb:0x2f7f86,false,true); } }
+  W.clearRoutes();
+  if(A.wide){ for(const l of A.railLines){ W.addRoute(l.pts,l.kind==='shinkansen'?0x3b5bdb:0x2f7f86,false,true); } }
+  else if(STATE.route){ const a=tl.stops.find(x=>x.id===STATE.route.from), b=tl.stops.find(x=>x.id===STATE.route.to); if(a&&b&&a.scene===A.name&&b.scene===A.name&&b.kind!=='leg'&&a.kind!=='leg'){ const r=routeFor(A,a,b); const m=MODES[b.mode]||MODES.walk; W.addRoute(r.pts,m.hex,!!m.dash,true); } }
+  // hero stays where it is (heroAt)
+  const hs=tl.stops.find(x=>x.id===STATE.heroAt); if(!A.wide&&hs&&hs.scene===A.name&&!W.heroPath){ const hq=stopXZ(A,hs); W.setHeroNear(A,hq.x,hq.z); }
   heroPin=document.createElement('div'); heroPin.className='pin hero'; heroPin.innerHTML='<div class="flag"><span>나</span><i></i></div>'; pinsEl.appendChild(heroPin);
   renderCards();
 }
@@ -225,34 +229,46 @@ W.onFrame=()=>{
   if(heroPin){ if(W.hero){ const hp=W.hero.position; const v=W.project(_v.set(hp.x,hp.y+5.6,hp.z)); heroPin.style.transform=`translate(${v.x}px,${v.y}px) translate(-50%,-100%)`; heroPin.style.display=''; } else heroPin.style.display='none'; }
 };
 $('#zin').onclick=()=>W.zoomBy(1.3,stage.clientWidth/2,stage.clientHeight/2); $('#zout').onclick=()=>W.zoomBy(1/1.3,stage.clientWidth/2,stage.clientHeight/2);
-$('#rotL').onclick=()=>W.rotateBy(Math.PI/8); $('#rotR').onclick=()=>W.rotateBy(-Math.PI/8);
+$('#rot').onclick=()=>W.rotateBy(-Math.PI/9);
 $('#fit').onclick=()=>fitStops(true);
 $('#lbl').onclick=()=>{STATE.labels=!STATE.labels;stage.classList.toggle('labels',STATE.labels);$('#lbl').classList.toggle('on',STATE.labels);};
 function fitStops(anim){ if(!pinObjs.length)return; let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9; for(const p of pinObjs){x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);z0=Math.min(z0,p.z);z1=Math.max(z1,p.z);} const span=Math.max(x1-x0,(z1-z0)*1.4,160); W.focus((x0+x1)/2,(z0+z1)/2,Math.min(1800,span*1.5),anim); }
 
 // ---------- UI ----------
-function setDay(d){ STATE.day=d; STATE.sel=null; $$('#dayTabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.day==d)); const reg=$('#regions'); const scenes=DAYS[d].scenes; if(scenes.length>1){reg.hidden=false;reg.innerHTML=scenes.map(s=>`<button role="tab" data-scene="${s}">${SCENES[s].label}</button>`).join('');reg.querySelectorAll('button').forEach(b=>b.onclick=async()=>{await showScene(b.dataset.scene);const first=pinObjs[0];if(first)select(first.s.id,false);else fitStops(true);});}else{reg.hidden=true;reg.innerHTML='';} closeSheet(); STATE.scene=null; showScene(scenes[0]).then(()=>select(timeline(d).stops[0].id,false)); }
+function setDay(d){ STATE.day=d; STATE.sel=null; STATE.route=null; STATE.heroAt=DAYS[d].stops[0].id; W.hero=null; $$('#dayTabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.day==d)); const reg=$('#regions'); const scenes=DAYS[d].scenes; if(scenes.length>1){reg.hidden=false;reg.innerHTML=scenes.map(s=>`<button role="tab" data-scene="${s}">${SCENES[s].label}</button>`).join('');reg.querySelectorAll('button').forEach(b=>b.onclick=async()=>{await showScene(b.dataset.scene);const first=pinObjs[0];if(first)select(first.s.id,false);else fitStops(true);});}else{reg.hidden=true;reg.innerHTML='';} closeSheet(); STATE.scene=null; showScene(scenes[0]).then(()=>select(timeline(d).stops[0].id,false)); }
 function renderCards(){ const tl=timeline(STATE.day); const c=$('#cards'); c.innerHTML=tl.stops.map(s=>{const th=s.thumb?`<img src="${s.thumb}" alt="">`:(s.kind==='leg'?'<span style="font-size:26px">🚄</span>':''); const meta=s.kind==='leg'?`${dur(s.travel)} · ¥${(s.fare||0).toLocaleString()}`:`${fmt(s.arrive)}–${fmt(s.depart)}`; return `<button class="card ${s.status||'ok'}${s.kind==='leg'?' leg':''}${s.id===STATE.sel?' sel':''}" data-id="${s.id}"><span class="n">${s.kind==='leg'?'↔':s.n}</span><div class="th">${th}</div><div><div class="t">${s.title}</div><div class="m">${meta}${s.wait?` <span class="st check">대기 ${s.wait}분</span>`:''}</div></div></button>`;}).join(''); c.querySelectorAll('.card').forEach(b=>b.onclick=()=>select(b.dataset.id,true)); $('#summary').innerHTML=`<span>도보 <b>${(tl.walkM/1000).toFixed(1)} km</b> · <b>${dur(tl.walkT)}</b></span>${tl.transitT?`<span>철도·지하철 <b>${dur(tl.transitT)}</b></span>`:''}<span>체류 <b>${dur(tl.stayT)}</b></span><span>${fmt(toMin(STATE.start[STATE.day]))} → <b>${fmt(tl.end)}</b></span>`; }
 async function select(id,openDetail){ const tl=timeline(STATE.day); const s=tl.stops.find(x=>x.id===id); if(!s)return; STATE.sel=id; $$('.card').forEach(c=>c.classList.toggle('sel',c.dataset.id===id)); const card=$(`.card[data-id="${id}"]`); if(card)card.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
   const A=await showScene(s.scene); $$('.pin').forEach(p=>p.classList.toggle('sel',p.dataset.id===id));
   const q=stopXZ(A,s); const vw=A.wide?1500:Math.min(W.viewW,300);
-  // keep the pin above the detail sheet: shift the target toward the camera-bottom when the sheet opens
   const shift=openDetail?vw*0.16:0; const az=W.az; W.focus(q.x+Math.sin(az)*shift*0.9,q.z+Math.cos(az)*shift*0.9,vw,true);
-  const idx=tl.stops.indexOf(s); const next=tl.stops[idx+1];
-  W.routeMeshes.forEach(rm=>{const seg=rm.m._seg||[]; rm.hot=seg.includes(id)||!!A.wide; rm.m.material.opacity=rm.hot?0.98:0.55; rm.m.material.depthTest=!rm.hot; rm.under.material.depthTest=!rm.hot; rm.m.material.needsUpdate=rm.under.material.needsUpdate=true;});
-  if(!A.wide){ if(next&&next.scene===A.name&&routePts[next.id]&&next.mode==='walk'&&!W.reduced){ W.heroWalk(routePts[next.id]); } else { W.setHeroNear(A,q.x,q.z); } }
+  if(!W.hero&&!A.wide){ const hs=tl.stops.find(x=>x.id===STATE.heroAt)||tl.stops[0]; if(hs.scene===A.name){ const hq=stopXZ(A,hs); W.setHeroNear(A,hq.x,hq.z); } }
   if(openDetail)showDetail(s,tl);else closeSheet(); }
+async function goRoute(fromId,toId){ const tl=timeline(STATE.day); const a=tl.stops.find(x=>x.id===fromId), b=tl.stops.find(x=>x.id===toId); if(!a||!b)return; STATE.route={from:fromId,to:toId}; STATE.heroAt=toId;
+  const walkable = a.scene===b.scene && a.kind!=='leg' && b.kind!=='leg' && (b.mode==='walk'||a.mode==='walk'||true) && b.scene!=='wide';
+  const A=await showScene(b.scene);
+  if(walkable){ const r=routeFor(A,a,b); W.clearRoutes(); const m=MODES[b.mode]||MODES.walk; W.addRoute(r.pts,m.hex,!!m.dash,true);
+    let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9; for(const p of r.pts){x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);z0=Math.min(z0,-p[1]);z1=Math.max(z1,-p[1]);} const span=Math.max(x1-x0,(z1-z0)*1.3,120); const vw=Math.min(620,span*1.5); const az=W.az, sh=vw*0.22; W.focus((x0+x1)/2+Math.sin(az)*sh,(z0+z1)/2+Math.cos(az)*sh,vw,true);
+    const pa=stopXZ(A,a); W.setHeroNear(A,pa.x,pa.z); W.heroWalk(r.pts,()=>{ toast(`${b.n?b.n+'번 ':''}${b.title}에 도착`); });
+    STATE.sel=toId; $$('.card').forEach(c=>c.classList.toggle('sel',c.dataset.id===toId)); $$('.pin').forEach(p=>p.classList.toggle('sel',p.dataset.id===toId)); const card=$(`.card[data-id="${toId}"]`); if(card)card.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'}); showDetail(b,tl); }
+  else { if(!A.wide){ const qb=stopXZ(A,b); W.setHeroNear(A,qb.x,qb.z); } await select(toId,true); }
+}
 function showDetail(s,tl){ const p=s.p||{}; $('#dTh').src=s.thumb||''; $('#dTh').parentElement.style.visibility=s.thumb?'visible':'hidden'; $('#dTitle').textContent=s.title; $('#dSub').textContent=[p.verified_name_ja,p.verified_name_en].filter(Boolean).join(' · ')||s.sub||''; const idx=tl.stops.indexOf(s); const m=MODES[s.mode]||MODES.walk; $('#dTime').innerHTML=s.kind==='leg'?`${fmt(s.arrive)} 출발 · ${dur(s.travel)} 소요`:`${fmt(s.arrive)} 도착 · ${dur(s.dur)} 체류 · ${fmt(s.depart)} 출발${s.wait?` <span class="st check">개점 대기 ${s.wait}분</span>`:''}`;
-  let b=''; if(idx>0&&s.mode!=='stay')b+=`<div class="box"><h4>이동 · 이전 장소에서</h4><div class="mode"><i style="border-color:${m.c==='#f7f3ea'?'#9a958a':m.c};${m.dash?'border-style:dashed':''}"></i>${m.n} ${dur(s.travel||0)}${s.dist?` · 약 ${s.dist>=1000?(s.dist/1000).toFixed(1)+' km':s.dist+' m'}${s.mode==='walk'&&routeLen[tl.stops[idx-1].id+'>'+s.id]?' (실제 도로 경로)':''}`:''}${s.fare?` · ¥${s.fare.toLocaleString()}`:''}</div>${s.legNote?`<div>${s.legNote}</div>`:''}</div>`;
+  let b='';
+  const prev=tl.stops[idx-1], nxt=tl.stops[idx+1]; const routed=STATE.route&&STATE.route.to===s.id&&STATE.route.from===(prev&&prev.id)? 'fwd' : (STATE.route&&STATE.route.to===s.id&&STATE.route.from===(nxt&&nxt.id)?'back':null);
+  const gm=(from,to,mode)=>from&&to&&PLACES[from.place]&&PLACES[to.place]&&PLACES[from.place].lat?`https://www.google.com/maps/dir/?api=1&origin=${PLACES[from.place].lat},${PLACES[from.place].lng}&destination=${PLACES[to.place].lat},${PLACES[to.place].lng}&travelmode=${mode==='walk'?'walking':'transit'}`:null;
+  b+=`<div class="nav">${prev?`<button data-go="${prev.id}">← ${prev.kind==='leg'?'이동':prev.n+'번'} 경로로 가기</button>`:''}${nxt?`<button class="go" data-go="${nxt.id}">${nxt.kind==='leg'?'이동':nxt.n+'번'} 경로로 가기 →</button>`:''}</div>`;
+  if(routed){ const from=routed==='fwd'?prev:nxt; const seg=routed==='fwd'?s:from; const m=MODES[seg.mode]||MODES.walk; const rl=routeLen[from.id+'>'+s.id]; const walkMin=rl?Math.round(rl/75):null; const link=gm(from,s,seg.mode);
+    b+=`<div class="box ok"><h4>경로 · ${from.kind==='leg'?'이동':from.n+'번'} → ${s.kind==='leg'?'이동':s.n+'번'} <span class="st ok">${m.n}</span></h4><div class="mode"><i style="border-color:${m.c};${m.dash?'border-style:dashed':''}"></i>${rl?`실제 도로 경로 약 ${rl>=1000?(rl/1000).toFixed(1)+' km':rl+' m'} · 도보 ${walkMin}분`:`${dur(seg.travel||0)} 소요`}${seg.fare?` · ¥${seg.fare.toLocaleString()}`:''}</div>${seg.legNote?`<div>${seg.legNote}</div>`:''}<div style="font-size:12px;color:var(--muted)">일정표 기준 ${dur(seg.travel||0)} · ${fmt(routed==='fwd'?from.depart:s.depart)} 출발</div>${link?`<a href="${link}" target="_blank" rel="noopener">구글맵에서 실시간 ${seg.mode==='walk'?'도보':'대중교통'} 길찾기 열기 ↗</a>`:''}</div>`; }
   const st=s.status||'ok'; const stLabel={ok:'검증됨',check:'당일 확인 필요',unknown:'미확정 · 메모 참고',leg:'교통'}[st];
   b+=`<div class="box ${st==='ok'?'ok':st==='check'?'warn':'grey'}"><h4>상태 <span class="st ${st}">${stLabel}</span></h4>${p.status_note?`<div>${p.status_note}</div>`:''}${s.note?`<div>${s.note}</div>`:''}${p.check_realtime&&p.check_realtime!=='-'?`<div><b>확인 방법:</b> ${p.check_realtime}</div>`:''}</div>`;
   if(s.kind!=='leg')b+=`<dl class="kv">${p.address?`<dt>주소</dt><dd>${p.address}</dd>`:''}${p.hours?`<dt>영업시간</dt><dd>${p.hours}</dd>`:''}${p.category?`<dt>분류</dt><dd>${p.category}</dd>`:''}${p.lat?`<dt>좌표</dt><dd>${p.lat.toFixed(5)}, ${p.lng.toFixed(5)} <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener" style="color:var(--teal)">지도 열기</a></dd>`:''}</dl>`;
   if(p.alternatives&&p.alternatives.length)b+=`<div class="box"><h4>대체 후보</h4><ul style="margin:0;padding-left:18px">${p.alternatives.map(a=>`<li>${a}</li>`).join('')}</ul></div>`;
   if(p.sources&&p.sources.length)b+=`<div class="box"><h4>출처 · 확인 ${META.checked_at}</h4>${p.sources.slice(0,3).map(u=>`<a href="${u}" target="_blank" rel="noopener">${u.replace(/^https?:\/\//,'').slice(0,60)}</a>`).join('<br>')}<div style="font-size:11px;color:var(--muted)">확신도: ${p.confidence||'-'}</div></div>`;
-  b+=`<div class="nav">${idx>0?`<button data-nav="${tl.stops[idx-1].id}">← 이전</button>`:''}<button class="go" data-done="${s.id}">${STATE.done[s.id]?'✓ 방문 완료 취소':'방문 완료'}</button>${tl.stops[idx+1]?`<button data-nav="${tl.stops[idx+1].id}">다음 →</button>`:''}</div>`;
-  $('#dBody').innerHTML=b; $('#dBody').querySelectorAll('[data-nav]').forEach(x=>x.onclick=()=>select(x.dataset.nav,true)); const dn=$('#dBody [data-done]'); if(dn)dn.onclick=()=>{STATE.done[s.id]=!STATE.done[s.id];save();$$('.pin').forEach(pn=>pn.classList.toggle('done',!!STATE.done[pn.dataset.id]));dn.textContent=STATE.done[s.id]?'✓ 방문 완료 취소':'방문 완료';};
+  b+=`<div class="nav"><button data-done="${s.id}">${STATE.done[s.id]?'✓ 방문 완료 취소':'방문 완료'}</button></div>`;
+  $('#dBody').innerHTML=b; $('#dBody').querySelectorAll('[data-go]').forEach(x=>x.onclick=()=>goRoute(s.id,x.dataset.go)); const dn=$('#dBody [data-done]'); if(dn)dn.onclick=()=>{STATE.done[s.id]=!STATE.done[s.id];save();$$('.pin').forEach(pn=>pn.classList.toggle('done',!!STATE.done[pn.dataset.id]));dn.textContent=STATE.done[s.id]?'✓ 방문 완료 취소':'방문 완료';};
   $('#sheet').classList.add('open'); }
 function closeSheet(){$('#sheet').classList.remove('open');}
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2400);}
 $('#dClose').onclick=closeSheet; $$('#dayTabs button').forEach(b=>b.onclick=()=>setDay(+b.dataset.day));
 (()=>{const sh=$('#sheet');let y0=null;sh.addEventListener('pointerdown',e=>{if(e.target.closest('.bd')&&$('#dBody').scrollTop>0)return;y0=e.clientY;});sh.addEventListener('pointermove',e=>{if(y0==null)return;const dy=e.clientY-y0;if(dy>0)sh.style.transform=`translateY(${dy}px)`;});const up=e=>{if(y0==null)return;const dy=e.clientY-y0;sh.style.transform='';if(dy>90)closeSheet();y0=null;};sh.addEventListener('pointerup',up);sh.addEventListener('pointercancel',up);})();
 $$('.screen [data-close]').forEach(b=>b.onclick=()=>b.closest('.screen').classList.remove('open'));
@@ -260,7 +276,7 @@ $('#btnNotes').onclick=()=>{renderNotes();$('#scrNotes').classList.add('open');}
 function renderNotes(){const unk=NOTES.map(n=>`<div class="item"><div class="t">${n.t}</div><div class="s">${n.s}</div>${n.opts?`<ul>${n.opts.map(o=>`<li>${o}</li>`).join('')}</ul>`:''}${n.how?`<div class="s"><b>확인 방법:</b> ${n.how}</div>`:''}</div>`).join('');const chk=Object.values(PLACES).filter(p=>p.check_realtime&&p.check_realtime!=='-').map(p=>`<div class="item"><div class="t">${p.user_name}</div><div class="s">${p.check_realtime}</div></div>`).join('');$('#notesBody').innerHTML=`<div class="s" style="color:var(--muted)">지인에게 받은 일정이라 확정하지 못한 항목입니다. 지도에는 회색 물음표 핀으로 표시됩니다.</div>${unk}<h3>출발 전 실시간 확인 목록</h3>${chk}`;}
 function renderSources(){$('#sourcesBody').innerHTML=`<div class="item"><div class="t">확인 시점 ${META.checked_at}</div><div class="s">${META.coordinate_note}</div><div class="s">3D 지도는 OpenStreetMap 기여자 데이터(ODbL)로 건물·도로·철도·수면·공원을 실제 위치와 크기로 세운 것입니다. 건물 높이는 OSM의 층수·높이 태그가 있으면 그 값을, 없으면 용도별 기본값을 씁니다.</div></div>`+Object.values(PLACES).map(p=>`<div class="item"><div class="t">${p.user_name} <span class="st ${p.target_status==='open'?'ok':'check'}">${p.confidence}</span></div><div class="s">${p.verified_name_ja||''}</div>${(p.sources||[]).map(u=>`<a href="${u}" target="_blank" rel="noopener">${u}</a>`).join('<br>')}</div>`).join('');}
 function renderSettings(){$('#settingsBody').innerHTML=`<label class="f">Day 1 시작 시각 (텐진 도착·짐 보관)<input type="time" id="st1" value="${STATE.start[1]}"></label><label class="f">Day 2 시작 시각 (晴レ吉 체크아웃)<input type="time" id="st2" value="${STATE.start[2]}"></label><label class="tog"><span>거리 애니메이션 (사람·차량·열차)</span><input type="checkbox" id="amb" ${STATE.ambient?'checked':''}></label><div class="item"><div class="s">시작 시각을 바꾸면 전체 일정이 함께 밀립니다. 개점 시간이 정해진 곳(효탄스시 11:30, 포켓몬센터 10:00, 블루윙 16:00, 미츠바치 17:30)은 도착이 빠르면 "대기"로 표시됩니다.</div></div><div class="item"><div class="s">두 손가락으로 회전·확대, 한 손가락으로 이동. 저사양 기기·모션 최소화 설정에서는 사람과 차량 수가 줄거나 멈춥니다. (현재: ${W.reduced?'모션 최소화':W.lowperf?'저사양 모드':'일반'})</div></div>`;const re=()=>{renderCards();if(STATE.sel)select(STATE.sel,false);};$('#st1').onchange=e=>{STATE.start[1]=e.target.value||'11:00';save();re();};$('#st2').onchange=e=>{STATE.start[2]=e.target.value||'08:45';save();re();};$('#amb').onchange=async e=>{STATE.ambient=e.target.checked;save();W.ambient=STATE.ambient&&!W.reduced;const sc=STATE.scene;STATE.scene=null;await showScene(sc);if(STATE.sel)select(STATE.sel,false);};}
-$('#legend').innerHTML=['walk','subway','shinkansen','train'].map(k=>`<span><i style="border-color:${MODES[k].c==='#f7f3ea'?'#9a958a':MODES[k].c};${MODES[k].dash?'border-style:dashed':''}"></i>${MODES[k].n}</span>`).join('');
+$('#legend').innerHTML=['walk','subway','shinkansen','train'].map(k=>`<span><i style="border-color:${MODES[k].c};${MODES[k].dash?'border-style:dashed':''}"></i>${MODES[k].n}</span>`).join('');
 setDay(1);
 </script>
 </body>

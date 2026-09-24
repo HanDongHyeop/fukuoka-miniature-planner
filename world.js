@@ -52,7 +52,7 @@ export class World {
   project(v) { const p = v.clone().project(this.camera); return { x: (p.x + 1) / 2 * this.el.clientWidth, y: (1 - p.y) / 2 * this.el.clientHeight, vis: p.z < 1 }; }
   _gestures() {
     const el = this.renderer.domElement; const ptrs = new Map(); let last = null, pd = 0, pa = 0; this.dragged = false;
-    el.addEventListener('pointerdown', e => { el.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptrs.size === 1) { last = { x: e.clientX, y: e.clientY }; this.dragged = false; } if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pd = Math.hypot(a.x - b.x, a.y - b.y); pa = Math.atan2(a.y - b.y, a.x - b.x); } });
+    el.addEventListener('pointerdown', e => { try { el.setPointerCapture(e.pointerId); } catch (_) {} ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptrs.size === 1) { last = { x: e.clientX, y: e.clientY }; this.dragged = false; } if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pd = Math.hypot(a.x - b.x, a.y - b.y); pa = Math.atan2(a.y - b.y, a.x - b.x); } });
     el.addEventListener('pointermove', e => { if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptrs.size === 1 && last) { const dx = e.clientX - last.x, dy = e.clientY - last.y; if (Math.abs(dx) + Math.abs(dy) > 3) this.dragged = true; this.panPx(dx, dy); last = { x: e.clientX, y: e.clientY }; } else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y), an = Math.atan2(a.y - b.y, a.x - b.x); const r = el.getBoundingClientRect(); if (pd) this.zoomBy(d / pd, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top); this.rotateBy(-(an - pa)); pd = d; pa = an; } });
     const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pd = 0; if (ptrs.size === 0) last = null; };
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
@@ -180,7 +180,7 @@ export class World {
     const A = await this.loadArea(name, url);
     if (this.cur && this.cur !== A) this.cur.group.visible = false;
     this.cur = A; A.group.visible = true; this._clearDyn();
-    if (this.ambient) { this._spawnNPCs(A, this.lowperf ? 14 : 30); this._spawnCars(A, this.lowperf ? 6 : 12); this._spawnTrains(A); }
+    if (this.ambient) { this._spawnNPCs(A, this.lowperf ? 26 : 64); this._spawnCars(A, this.lowperf ? 12 : 30); this._spawnTrains(A); }
     return A;
   }
   _clearDyn() { this.dyn.clear(); this.npcs = []; this.cars = []; this.trains = []; this.hero = null; this.heroPath = null; this.rings = []; this.routeMeshes = []; }
@@ -204,6 +204,7 @@ export class World {
     const under = new THREE.Mesh(World.ribbon(pts, 3.4, 0.4, undefined, 4.5), new THREE.MeshBasicMaterial({ color: 0x1d1a16, transparent: true, opacity: hot ? 0.35 : 0.15, depthWrite: false, depthTest: !hot, polygonOffset: true, polygonOffsetFactor: -1 }));
     const m = new THREE.Mesh(g, mat); m.renderOrder = 5; under.renderOrder = 4; this.dyn.add(under, m); this.routeMeshes.push({ m, under, hot, dashed }); return m;
   }
+  clearRoutes() { for (const rm of this.routeMeshes) { this.dyn.remove(rm.m); this.dyn.remove(rm.under); rm.m.geometry.dispose(); rm.under.geometry.dispose(); } this.routeMeshes = []; }
   addRing(x, z, r, color) { const ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.86, r, 48), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.3, z); ring.renderOrder = 3; this.dyn.add(ring); this.rings.push({ ring, r }); return ring; }
   addBeacon(x, z, h, color) { const g = new THREE.CylinderGeometry(0.9, 0.9, 40, 12, 1, true); const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide })); m.position.set(x, h + 20, z); m.renderOrder = 2; this.dyn.add(m); return m; }
   async placeLandmark(A, lm) { // lm: {glb, lat, lng, maxH}
@@ -254,24 +255,30 @@ export class World {
     g.scale.setScalar(1.7); return g;
   }
   makeTrain(kind) {
-    const mat = this.mat; const g = new THREE.Group(); const cars = kind === 'shinkansen' ? 4 : 3; const body = kind === 'shinkansen' ? 0xf4f2ee : kind === 'mono' ? 0xe9e6e0 : 0x3b6fb6; const band = kind === 'shinkansen' ? 0x3b5bdb : kind === 'mono' ? 0x2f7f86 : 0x2a4c86;
+    const mat = this.mat; const g = new THREE.Group(); const cars = kind === 'shinkansen' ? 4 : kind === 'tram' ? 1 : 3; const body = kind === 'shinkansen' ? 0xf4f2ee : kind === 'mono' ? 0xe9e6e0 : kind === 'tram' ? 0xb8562e : 0x3b6fb6; const band = kind === 'shinkansen' ? 0x3b5bdb : kind === 'mono' ? 0x2f7f86 : kind === 'tram' ? 0xf1e4c8 : 0x2a4c86;
     for (let i = 0; i < cars; i++) { const c = new THREE.Mesh(this.G.trainCar, mat(body)); c.position.set(i * 19.6, 1.7, 0); g.add(c); const w = new THREE.Mesh(this.G.trainWin, mat(band)); w.position.set(i * 19.6, 2.1, 0); g.add(w); }
     if (kind === 'shinkansen') { const nose = new THREE.Mesh(new THREE.ConeGeometry(1.5, 6, 4), mat(body)); nose.rotation.z = Math.PI / 2; nose.rotation.y = Math.PI / 4; nose.position.set(-12.2, 1.9, 0); g.add(nose); }
     return g;
   }
-  _pickRoad(list) { return list[Math.floor(Math.random() * list.length)]; }
+  _pickRoad(list) { for (let k = 0; k < 12; k++) { const r = list[Math.floor(Math.random() * list.length)]; if ((r._len ||= World.plen(r.pts)) >= 35) return r; } return list[Math.floor(Math.random() * list.length)]; }
+  _inBuilding(A, x, y) { for (const b of A.bld) { const bb = b._bbox; if (x < bb[0] || x > bb[2] || y < bb[1] || y > bb[3]) continue; if (World.inPoly(x, y, b.pts)) return true; } return false; }
+  _sideOffset(A, r, side) { // sidewalk offset that stays out of buildings; small offset = walk on the road edge
+    const key = side > 0 ? '_okR' : '_okL';
+    if (r[key] === undefined) { const off = r.w / 2 + 1.4; let bad = 0, n = 0; for (let i = 1; i < r.pts.length; i++) { const a = r.pts[i - 1], b = r.pts[i]; let dx = b[0] - a[0], dy = b[1] - a[1]; const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L; for (const f of [0.3, 0.7]) { const x = a[0] + (b[0] - a[0]) * f - dy * off * side, y = a[1] + (b[1] - a[1]) * f + dx * off * side; n++; if (this._inBuilding(A, x, y)) bad++; } } r[key] = n > 0 && bad / n < 0.34; }
+    return r[key] ? side * (r.w / 2 + 1.4) : side * Math.min(1.2, r.w / 4); }
+  _endIndex(list) { const idx = new Map(); const cell = k => Math.round(k / 25); const add = (p, r, dir) => { const key = cell(p[0]) + '|' + cell(p[1]); if (!idx.has(key)) idx.set(key, []); idx.get(key).push([r, dir]); }; for (const r of list) { add(r.pts[0], r, 1); add(r.pts[r.pts.length - 1], r, -1); } return idx; }
   _spawnNPCs(A, n) {
     if (!A.walkRoads.length) return;
-    for (let i = 0; i < n; i++) { const f = this.makeFigure({ bag: Math.random() < 0.4 ? 0xb9926b : null, scale: 2.3 + Math.random() * 0.3 }); const r = this._pickRoad(A.walkRoads); const side = Math.random() < 0.5 ? 1 : -1; const a = { obj: f, road: r, seg: 0, t: Math.random(), dir: Math.random() < 0.5 ? 1 : -1, v: 1.7 + Math.random() * 0.9, off: side * (r.w / 2 + 1.2), A }; this.dyn.add(f); this.npcs.push(a); this._place(a); }
+    for (let i = 0; i < n; i++) { const f = this.makeFigure({ bag: Math.random() < 0.4 ? 0xb9926b : null, scale: 2.3 + Math.random() * 0.3 }); const r = this._pickRoad(A.walkRoads); const side = Math.random() < 0.5 ? 1 : -1; const a = { obj: f, road: r, seg: Math.floor(Math.random() * (r.pts.length - 1)), t: Math.random(), dir: Math.random() < 0.5 ? 1 : -1, v: 1.7 + Math.random() * 0.9, side, off: this._sideOffset(A, r, side), A }; this.dyn.add(f); this.npcs.push(a); this._place(a); }
   }
   _spawnCars(A, n) {
     if (!A.carRoads.length) return;
-    for (let i = 0; i < n; i++) { const kind = i % 5 === 0 ? 'bus' : i % 3 === 0 ? 'taxi' : 'car'; const c = this.makeCar(kind); const r = this._pickRoad(A.carRoads); const a = { obj: c, road: r, seg: 0, t: Math.random(), dir: Math.random() < 0.5 ? 1 : -1, v: kind === 'bus' ? 7 : 9 + Math.random() * 4, off: 0, lane: r.w / 4, A, car: true }; this.dyn.add(c); this.cars.push(a); this._place(a); }
+    for (let i = 0; i < n; i++) { const kind = i % 5 === 0 ? 'bus' : i % 3 === 0 ? 'taxi' : 'car'; const c = this.makeCar(kind); const r = this._pickRoad(A.carRoads); const a = { obj: c, road: r, seg: Math.floor(Math.random() * (r.pts.length - 1)), t: Math.random(), dir: Math.random() < 0.5 ? 1 : -1, v: kind === 'bus' ? 7 : 9 + Math.random() * 4, off: 0, lane: r.w / 4, A, car: true }; this.dyn.add(c); this.cars.push(a); this._place(a); }
   }
   _spawnTrains(A) {
     const lines = A.railLines.filter(l => l.pts.length > 3); const used = new Set();
     lines.sort((a, b) => World.plen(b.pts) - World.plen(a.pts));
-    for (const l of lines.slice(0, 3)) { const len = World.plen(l.pts); if (len < 150) continue; const kind = l.mono ? 'mono' : (len > 600 && !used.has('shinkansen') ? 'shinkansen' : 'local'); used.add(kind); const tr = this.makeTrain(kind); const a = { obj: tr, pts: l.pts, y: l.y, d: Math.random() * len, len, dir: 1, v: kind === 'shinkansen' ? 34 : 16, wait: 0 }; this.dyn.add(tr); this.trains.push(a); }
+    for (const l of lines.slice(0, 9)) { const len = World.plen(l.pts); if (len < 120) continue; const kind = l.mono ? 'mono' : (len > 600 && !used.has('shinkansen') ? 'shinkansen' : (len < 450 ? 'tram' : 'local')); used.add(kind); const tr = this.makeTrain(kind); const a = { obj: tr, pts: l.pts, y: l.y, d: Math.random() * len, len, dir: 1, v: kind === 'shinkansen' ? 34 : kind === 'tram' ? 9 : 16, wait: 0 }; this.dyn.add(tr); this.trains.push(a); if (len > 700 && kind !== 'shinkansen') { const tr2 = this.makeTrain(kind); this.dyn.add(tr2); this.trains.push({ obj: tr2, pts: l.pts, y: l.y, d: Math.random() * len, len, dir: -1, v: 16, wait: 0 }); } }
   }
   static plen(pts) { let l = 0; for (let i = 1; i < pts.length; i++) l += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return l; }
   static posOn(pts, d) { let acc = 0; for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], b = pts[i]; const L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (d <= acc + L || i === pts.length - 1) { const t = L ? Math.min(1, Math.max(0, (d - acc) / L)) : 0; return { x: a[0] + (b[0] - a[0]) * t, y: a[1] + (b[1] - a[1]) * t, dx: (b[0] - a[0]) / (L || 1), dy: (b[1] - a[1]) / (L || 1) }; } acc += L; } return { x: pts[0][0], y: pts[0][1], dx: 1, dy: 0 }; }
@@ -289,16 +296,17 @@ export class World {
       if (ns >= 0 && ns < pts.length - 1) { a.seg = ns; a.t = a.dir > 0 ? 0 : 1; }
       else { // choose a connected road
         const end = a.dir > 0 ? pts[pts.length - 1] : pts[0]; const list = a.car ? a.A.carRoads : a.A.walkRoads; const cands = [];
-        for (let k = 0; k < 40; k++) { const r = list[Math.floor(Math.random() * list.length)]; if (r === a.road) continue; const s0 = r.pts[0], s1 = r.pts[r.pts.length - 1]; if (Math.hypot(s0[0] - end[0], s0[1] - end[1]) < 6) cands.push([r, 1]); else if (Math.hypot(s1[0] - end[0], s1[1] - end[1]) < 6) cands.push([r, -1]); }
-        if (cands.length) { const [r, dir] = cands[Math.floor(Math.random() * cands.length)]; a.road = r; a.dir = dir; a.seg = dir > 0 ? 0 : r.pts.length - 2; a.t = dir > 0 ? 0 : 1; if (!a.car) a.off = (a.off < 0 ? -1 : 1) * (r.w / 2 + 1.2); else a.lane = r.w / 4; }
+        const idx = a.car ? (a.A._endIdxC ||= this._endIndex(list)) : (a.A._endIdxW ||= this._endIndex(list)); const cell = k => Math.round(k / 25); for (let ix = -1; ix <= 1; ix++) for (let iy = -1; iy <= 1; iy++) for (const [r, dir] of (idx.get((cell(end[0]) + ix) + '|' + (cell(end[1]) + iy)) || [])) { if (r === a.road) continue; const s0 = dir > 0 ? r.pts[0] : r.pts[r.pts.length - 1]; if (Math.hypot(s0[0] - end[0], s0[1] - end[1]) < 14) cands.push([r, dir]); }
+        if (cands.length) { const [r, dir] = cands[Math.floor(Math.random() * cands.length)]; a.road = r; a.dir = dir; a.seg = dir > 0 ? 0 : r.pts.length - 2; a.t = dir > 0 ? 0 : 1; if (!a.car) a.off = this._sideOffset(a.A, r, a.side); else a.lane = r.w / 4; }
         else { a.dir *= -1; a.t = Math.min(1, Math.max(0, a.t)); }
       }
     }
     this._place(a);
   }
   setHeroNear(A, x, z) { const nd = this.nearestNode(A, x, -z); if (nd) this.setHero(nd.x, -nd.y); else this.setHero(x, z); }
-  setHero(x, z, opts) { if (!this.hero) { this.hero = this.makeFigure({ torso: 0x2f7f86, legs: 0xc9bda4, hair: 0x4a2f1f, pack: 0x7b8a4a, scale: 2.8 }); const ring = new THREE.Mesh(new THREE.RingGeometry(1.7, 2.4, 40), new THREE.MeshBasicMaterial({ color: 0x2f7f86, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05; this.hero.add(ring); this.hero.userData.ring = ring; this.dyn.add(this.hero); } this.hero.position.set(x, 0.05, z); this.heroPath = null; this.hero.userData.walking = false; }
-  heroWalk(pts) { if (!this.hero) this.setHero(pts[0][0], -pts[0][1]); this.heroPath = { pts, len: World.plen(pts), d: 0, pause: 0 }; this.hero.userData.walking = true; }
+  _glowTex() { if (this._glow) return this._glow; const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); const g = x.createRadialGradient(64, 64, 4, 64, 64, 64); g.addColorStop(0, 'rgba(120,235,225,0.95)'); g.addColorStop(0.35, 'rgba(60,200,190,0.45)'); g.addColorStop(1, 'rgba(40,160,150,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); this._glow = t; return t; }
+  setHero(x, z, opts) { if (!this.hero) { this.hero = this.makeFigure({ torso: 0x2f7f86, legs: 0xc9bda4, hair: 0x4a2f1f, pack: 0x7b8a4a, scale: 2.9 }); this.hero.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.emissive = new THREE.Color(o.material.color).multiplyScalar(0.35); o.renderOrder = 20; } }); const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this._glowTex(), transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, opacity: 0.55 })); glow.scale.set(6.5, 6.5, 1); glow.position.y = 0.6; glow.renderOrder = 19; this.hero.add(glow); this.hero.userData.glow = glow; const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: this._glowTex(), transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, opacity: 0.3 })); halo.scale.set(2.6, 2.6, 1); halo.position.y = 2.2; halo.renderOrder = 19; this.hero.add(halo); const ring = new THREE.Mesh(new THREE.RingGeometry(1.7, 2.5, 40), new THREE.MeshBasicMaterial({ color: 0x6fe3d8, transparent: true, opacity: 0.95, depthWrite: false, depthTest: false, side: THREE.DoubleSide })); ring.renderOrder = 19; ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05; this.hero.add(ring); this.hero.userData.ring = ring; this.dyn.add(this.hero); } this.hero.position.set(x, 0.05, z); this.heroPath = null; this.hero.userData.walking = false; }
+  heroWalk(pts, onDone) { if (!this.hero) this.setHero(pts[0][0], -pts[0][1]); this.heroPath = { pts, len: World.plen(pts), d: 0, onDone }; this.hero.userData.walking = true; }
   heroPos() { return this.hero ? this.hero.position.clone() : null; }
 
   _tick() {
@@ -309,12 +317,12 @@ export class World {
       for (const a of this.cars) this._advance(a, dt);
       for (const tr of this.trains) { if (tr.wait > 0) { tr.wait -= dt; } else { tr.d += tr.dir * tr.v * dt; if (tr.d > tr.len || tr.d < 0) { tr.dir *= -1; tr.d = Math.max(0, Math.min(tr.len, tr.d)); tr.wait = 2.5; } } const p = World.posOn(tr.pts, tr.d); tr.obj.position.set(p.x, tr.y, -p.y); tr.obj.rotation.y = -Math.atan2(-p.dy, p.dx) + (tr.dir < 0 ? Math.PI : 0); }
     }
-    if (this.hero && this.heroPath) { const hp = this.heroPath; if (hp.pause > 0) { hp.pause -= dt; this.hero.userData.walking = false; } else { hp.d += 3.4 * dt; this.hero.userData.walking = true; if (hp.d >= hp.len) { hp.d = 0; hp.pause = 1.6; } } const p = World.posOn(hp.pts, hp.d); this.hero.position.set(p.x, 0.05, -p.y); this.hero.rotation.y = -Math.atan2(-p.dy, p.dx); }
-    if (this.hero) { this._animFigure(this.hero, t, 2.6); const r = this.hero.userData.ring; const s = 1 + 0.12 * Math.sin(t * 4); r.scale.set(s, s, s); r.material.opacity = 0.6 + 0.35 * Math.sin(t * 4 + 1); }
+    if (this.hero && this.heroPath) { const hp = this.heroPath; hp.d += 3.6 * dt; this.hero.userData.walking = true; const p = World.posOn(hp.pts, Math.min(hp.d, hp.len)); this.hero.position.set(p.x, 0.05, -p.y); this.hero.rotation.y = -Math.atan2(-p.dy, p.dx); if (hp.d >= hp.len) { this.heroPath = null; this.hero.userData.walking = false; if (hp.onDone) hp.onDone(); } }
+    if (this.hero) { this._animFigure(this.hero, t, 2.6); const r = this.hero.userData.ring; const s = 1 + 0.12 * Math.sin(t * 4); r.scale.set(s, s, s); r.material.opacity = 0.6 + 0.35 * Math.sin(t * 4 + 1); const gl = this.hero.userData.glow; if (gl) { const gs = 6 + 1.0 * Math.sin(t * 3); gl.scale.set(gs, gs, 1); } }
     for (const r of this.rings) { const s = 1 + 0.06 * Math.sin(t * 2.5); r.ring.scale.set(s, s, s); r.ring.material.opacity = 0.55 + 0.3 * Math.sin(t * 2.5); }
     for (const rm of this.routeMeshes) if (rm.hot && rm.dashed && rm.m.material.map) rm.m.material.map.offset.x = -t * 0.9;
     this.renderer.render(this.scene, this.camera);
     if (this.onFrame) this.onFrame();
   }
-  _animFigure(g, t, v) { const u = g.userData; if (!u.walking || this.reduced) { u.legL.rotation.x = u.legR.rotation.x = u.armL.rotation.x = u.armR.rotation.x = 0; return; } const w = Math.sin(t * (4.6 + v) + u.phase) * 0.55; u.legL.rotation.x = w; u.legR.rotation.x = -w; u.armL.rotation.x = -w * 0.8; u.armR.rotation.x = w * 0.8; g.position.y = 0.05 + Math.abs(Math.sin(t * (4.6 + v) + u.phase)) * 0.06; }
+  _animFigure(g, t, v) { const u = g.userData; if (!u.walking || this.reduced) { u.legL.rotation.x = u.legR.rotation.x = 0; if (g === this.hero && !this.reduced) { u.armL.rotation.x = Math.sin(t * 1.3 + 1) * 0.18; u.armR.rotation.x = Math.sin(t * 1.3) * 0.18; g.rotation.y += Math.sin(t * 0.7) * 0.0025; g.position.y = 0.05 + Math.abs(Math.sin(t * 1.3)) * 0.03; } else { u.armL.rotation.x = u.armR.rotation.x = 0; } return; } const w = Math.sin(t * (4.6 + v) + u.phase) * 0.55; u.legL.rotation.x = w; u.legR.rotation.x = -w; u.armL.rotation.x = -w * 0.8; u.armR.rotation.x = w * 0.8; g.position.y = 0.05 + Math.abs(Math.sin(t * (4.6 + v) + u.phase)) * 0.06; }
 }
