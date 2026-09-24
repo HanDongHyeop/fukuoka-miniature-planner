@@ -50,13 +50,27 @@
   #sprites{position:absolute;inset:0;pointer-events:none}
   .spr{position:absolute;left:0;top:0;transform-origin:50% 100%;will-change:transform;image-rendering:auto}
   .spr img{display:block;height:100%;width:auto}
-  .spr.flip img{transform:scaleX(-1)}
+  .spr.flip .rig{transform:scaleX(-1)}
+  .rig{position:relative;height:100%;display:grid;grid-template-rows:100%;grid-template-columns:max-content;--hip:57%;--legs:43%;--swing:17deg;--cyc:.58s}
+  .rig .part{grid-area:1/1;height:100%;min-height:0;will-change:transform}
+  .rig .part img{height:100%;width:auto;display:block}
+  .rig .body{clip-path:inset(0 0 var(--legs) 0);animation:bodybob var(--cyc) ease-in-out infinite}
+  .rig .legL{clip-path:inset(var(--hip) 50% -6% 0);transform-origin:50% var(--hip);animation:legL var(--cyc) ease-in-out infinite}
+  .rig .legR{clip-path:inset(var(--hip) 0 -6% 50%);transform-origin:50% var(--hip);animation:legR var(--cyc) ease-in-out infinite}
+  .rig.idle .part{animation:none;transform:none}
+  .spr.car .rig .part{clip-path:none;animation:carbob .34s ease-in-out infinite}
+  .spr.train .rig .part{clip-path:none;animation:none}
+  @keyframes legL{0%,100%{transform:rotate(var(--swing))}50%{transform:rotate(calc(var(--swing) * -1))}}
+  @keyframes legR{0%,100%{transform:rotate(calc(var(--swing) * -1))}50%{transform:rotate(var(--swing))}}
+  @keyframes bodybob{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-1.2px) rotate(1.5deg)}75%{transform:translateY(-1.2px) rotate(-1.5deg)}}
+  @keyframes carbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-.7px)}}
+  @media (prefers-reduced-motion:reduce){.rig .part{animation:none!important}}
   /* hero */
   #hero{position:absolute;left:0;top:0;transform-origin:50% 100%;will-change:transform;pointer-events:none;z-index:3}
   #hero .ring{position:absolute;left:50%;bottom:-6px;width:46px;height:20px;margin-left:-23px;border-radius:50%;border:3px solid var(--teal);box-shadow:0 0 0 6px rgba(47,127,134,.18), 0 0 18px rgba(47,127,134,.5);animation:ring 1.6s ease-in-out infinite}
-  #hero .body{position:relative;height:46px;display:block;filter:drop-shadow(0 2px 2px rgba(0,0,0,.25))}
-  #hero .body img{height:100%;width:auto;display:block}
-  #hero.flip .body img{transform:scaleX(-1)}
+  #hero .hb{position:relative;height:46px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.25))}
+  #hero .hb .rig{--swing:20deg;--cyc:.62s}
+  #hero.flip .hb .rig{transform:scaleX(-1)}
   #hero .flag{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;animation:bob 1.4s ease-in-out infinite}
   #hero .flag span{background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.25);white-space:nowrap;letter-spacing:.02em}
   #hero .flag i{width:2px;height:10px;background:var(--accent);display:block}
@@ -178,7 +192,7 @@
     <svg id="routes"></svg>
     <div id="sprites"></div>
     <div id="pins"></div>
-    <div id="hero" hidden><div class="ring"></div><div class="body"><img id="heroImg" alt=""></div><div class="flag"><span>나</span><i></i></div></div>
+    <div id="hero" hidden><div class="ring"></div><div class="hb"><div class="rig" id="heroRig"><div class="part body"><img alt=""></div><div class="part legL"><img alt=""></div><div class="part legR"><img alt=""></div></div></div><div class="flag"><span>나</span><i></i></div></div>
   </div>
   <div id="legend"></div>
   <div id="hud">
@@ -209,6 +223,8 @@
 (function(){
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let heroSrc='';
+function setHero(src,idle){ const rig=document.getElementById('heroRig'); if(heroSrc!==src){ heroSrc=src; rig.querySelectorAll('img').forEach(i=>i.src=src); } rig.classList.toggle('idle',!!idle); }
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const LOWPERF = (navigator.hardwareConcurrency||8) <= 4 || (navigator.deviceMemory||8) <= 4;
 const MODES = {walk:{c:'#f2eee6',d:'8 7',n:'도보'},subway:{c:'#2e3d5c',d:'2 6',n:'지하철'},shinkansen:{c:'#3b5bdb',d:'',n:'신칸센'},train:{c:'#2f7f86',d:'',n:'JR 재래선'},bus:{c:'#b8860b',d:'',n:'버스'},taxi:{c:'#e0b100',d:'',n:'택시'},stay:{c:'transparent',d:'',n:''}};
@@ -307,15 +323,16 @@ function buildAmbient(sc){
   (sc.rails||[]).forEach(r=>{ addSprite(SPR[r.spr]||SPR.train, r.pts, r.v||60, Math.random(), r.h||40, 'train', false, r.pause||2.5); });
 }
 function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
-function addSprite(src,pts,speed,prog,h,kind,rev,pause){ const el=document.createElement('div'); el.className='spr '+kind; el.style.height=h+'px'; el.innerHTML=`<img src="${src}" alt="">`; spritesEl.appendChild(el); const path=pathPx(pts); anims.push({el,path,speed,prog,rev,len:path.len,pause:pause||0,wait:0}); }
+const rigHTML=src=>`<div class="rig"><div class="part body"><img src="${src}" alt=""></div><div class="part legL"><img src="${src}" alt=""></div><div class="part legR"><img src="${src}" alt=""></div></div>`;
+function addSprite(src,pts,speed,prog,h,kind,rev,pause){ const el=document.createElement('div'); el.className='spr '+kind; el.style.height=h+'px'; el.innerHTML=rigHTML(src); if(kind==='ppl'){ el.querySelector('.rig').style.setProperty('--cyc',(0.5+Math.random()*0.2).toFixed(2)+'s'); el.querySelectorAll('.part').forEach(pt=>pt.style.animationDelay=(-Math.random()).toFixed(2)+'s'); } spritesEl.appendChild(el); const path=pathPx(pts); anims.push({el,path,speed,prog,rev,len:path.len,pause:pause||0,wait:0}); }
 function pathPx(pts){ const P2=pts.map(p=>[p[0]/100*view.w,p[1]/100*view.h]); const seg=[]; let len=0; for(let i=1;i<P2.length;i++){ const l=Math.hypot(P2[i][0]-P2[i-1][0],P2[i][1]-P2[i-1][1]); seg.push({a:P2[i-1],b:P2[i],l,s:len}); len+=l; } return {seg,len,pts:P2}; }
 function posAt(path,d){ d=Math.max(0,Math.min(path.len,d)); for(const s of path.seg){ if(d<=s.s+s.l||s===path.seg[path.seg.length-1]){ const t=s.l?(d-s.s)/s.l:0; return {x:s.a[0]+(s.b[0]-s.a[0])*t, y:s.a[1]+(s.b[1]-s.a[1])*t, dx:s.b[0]-s.a[0]}; } } return {x:path.pts[0][0],y:path.pts[0][1],dx:1}; }
 function tick(now){ const dt=Math.min(.05,(now-lastT)/1000); lastT=now; if(STATE.ambient){ for(const a of anims){ if(a.wait>0){a.wait-=dt;continue;} const dir=a.rev?-1:1; a.prog+=dir*a.speed*dt/a.len; if(a.prog>1||a.prog<0){ if(a.pause){a.wait=a.pause;} a.rev=!a.rev; a.prog=Math.max(0,Math.min(1,a.prog)); } const p=posAt(a.path,a.prog*a.len); const dx=a.rev?-p.dx:p.dx; a.el.classList.toggle('flip',dx<0); a.el.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`; } } tickHero(dt); rafId=requestAnimationFrame(tick); }
 
 // ---------- hero ----------
 let heroA=null;
-function updateHero(){ const tl=timeline(STATE.day); const idx=tl.stops.findIndex(s=>s.id===STATE.sel); const s=idx>=0?tl.stops[idx]:tl.stops[0]; hero.hidden=true; heroA=null; if(!s||s.scene!==STATE.scene) return; const sc=SCENES[STATE.scene]; const next=tl.stops[idx+1]; hero.hidden=false; if(next&&next.scene===STATE.scene&&next.kind!=='leg'&&s.kind!=='leg'&&!RM){ const pts=[s.at,...(next.via||[]),next.at]; heroA={path:pathPx(pts),prog:0,speed:14,pauseAt:0}; } else { const [x,y]=P(sc,s.at); hero.style.transform=`translate(${x}px,${y+4}px) translate(-50%,-100%)`; $('#heroImg').src=SPR.hero.idle; hero.classList.remove('flip'); } }
-function tickHero(dt){ if(!heroA) return; if(heroA.pauseAt>0){ heroA.pauseAt-=dt; return; } heroA.prog+=heroA.speed*dt/heroA.path.len; if(heroA.prog>=1){ heroA.prog=0; heroA.pauseAt=1.2; $('#heroImg').src=SPR.hero.idle; return; } const p=posAt(heroA.path,heroA.prog*heroA.path.len); const dx=p.dx; hero.classList.toggle('flip',dx<0); $('#heroImg').src=dx<0?SPR.hero.walkL:SPR.hero.walkR; hero.style.transform=`translate(${p.x}px,${p.y+4}px) translate(-50%,-100%)`; }
+function updateHero(){ const tl=timeline(STATE.day); const idx=tl.stops.findIndex(s=>s.id===STATE.sel); const s=idx>=0?tl.stops[idx]:tl.stops[0]; hero.hidden=true; heroA=null; if(!s||s.scene!==STATE.scene) return; const sc=SCENES[STATE.scene]; const next=tl.stops[idx+1]; hero.hidden=false; if(next&&next.scene===STATE.scene&&next.kind!=='leg'&&s.kind!=='leg'&&!RM){ const pts=[s.at,...(next.via||[]),next.at]; heroA={path:pathPx(pts),prog:0,speed:14,pauseAt:0}; } else { const [x,y]=P(sc,s.at); hero.style.transform=`translate(${x}px,${y+4}px) translate(-50%,-100%)`; setHero(SPR.hero.idle,true); hero.classList.remove('flip'); } }
+function tickHero(dt){ if(!heroA) return; if(heroA.pauseAt>0){ heroA.pauseAt-=dt; return; } heroA.prog+=heroA.speed*dt/heroA.path.len; if(heroA.prog>=1){ heroA.prog=0; heroA.pauseAt=1.2; setHero(SPR.hero.idle,true); return; } const p=posAt(heroA.path,heroA.prog*heroA.path.len); const dx=p.dx; hero.classList.toggle('flip',dx<0); setHero(SPR.hero.walkR,false); hero.style.transform=`translate(${p.x}px,${p.y+4}px) translate(-50%,-100%)`; }
 
 // ---------- UI: day / regions / cards ----------
 function setDay(d){ STATE.day=d; STATE.sel=null; $$('#dayTabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.day==d)); const reg=$('#regions'); const scenes=DAYS[d].scenes; if(scenes.length>1){ reg.hidden=false; reg.innerHTML=scenes.map(s=>`<button role="tab" data-scene="${s}">${SCENES[s].label}</button>`).join(''); reg.querySelectorAll('button').forEach(b=>b.onclick=()=>{ loadScene(b.dataset.scene,()=>{ const first=sceneStops[0]; if(first) select(first.id,false); }); }); } else { reg.hidden=true; reg.innerHTML=''; } renderCards(); loadScene(scenes[0],()=>{ select(timeline(d).stops[0].id,false); }); closeSheet(); }

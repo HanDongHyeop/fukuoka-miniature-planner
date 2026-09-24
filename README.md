@@ -23,3 +23,8 @@
 python tools/build_data.py     # data.js 재생성
 ```
 장소를 추가하려면 `data/places.json`에 항목을 넣고 `build_data.py`의 DAY 리스트에 `st(...)`를 추가하면 됩니다. 핀 좌표는 장면 이미지의 가로·세로 퍼센트입니다(`tmp_split/grid/*.jpg` 격자 참고용 이미지는 `tools/`의 격자 스크립트로 다시 만들 수 있음).
+
+## 공개 배포 (지인 공유용)
+- GitHub Pages: https://handonghyeop.github.io/fukuoka-miniature-planner/ (저장소 `HanDongHyeop/fukuoka-miniature-planner`, public)
+- 갱신: `tools/build_data.py` 실행 후 `app/`의 index.html·data.js·assets를 저장소 루트에 복사해 push하면 1~2분 뒤 반영.
+- 비공개로 돌리려면: 저장소 삭제(`gh repo delete HanDongHyeop/fukuoka-miniature-planner`)로 링크가 바로 닫힘.
